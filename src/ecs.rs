@@ -20,7 +20,8 @@ freecs::ecs! {
         weapon: WeaponState,
         stats: PlayerStats,
         game: GameState,
-        flashes: FlashState,
+        projectiles: ProjectileState,
+        transient: TransientState,
         audio: AudioPool,
         ui_handles: UiHandles,
     }

@@ -28,17 +28,90 @@ const IMP: &[&str] = &[
     "..oddo....oddo..",
 ];
 
-fn imp_palette(symbol: char, body: [u8; 4], eye: [u8; 4], belly: [u8; 4]) -> [u8; 4] {
-    match symbol {
+const SWARMER: &[&str] = &[
+    "..s........s..",
+    "...s......s...",
+    "...oggggggo...",
+    "..oggggggggo..",
+    "..oggeggeggo..",
+    "..oggeggeggo..",
+    "..oggggggggo..",
+    "..oggmmmmggo..",
+    ".oggggggggggo.",
+    ".oggggggggggo.",
+    "..oggggggggo..",
+    "s..o.oggo.o..s",
+];
+
+const CASTER: &[&str] = &[
+    "....oooo....",
+    "...orrrro...",
+    "..orrrrrro..",
+    "..orrrrrro..",
+    "..orreerro..",
+    "..orreerro..",
+    "..orrrrrro..",
+    ".orrrrrrrro.",
+    ".orrrrrrrro.",
+    ".orrddddrro.",
+    ".orrddddrro.",
+    ".orrddddrro.",
+    ".orrddddrro.",
+    "..orddddro..",
+    "..orddddro..",
+    "...orddro...",
+    "....oddo....",
+    "....o..o....",
+];
+
+fn brighten(color: [u8; 4], hurt: bool) -> [u8; 4] {
+    if !hurt || color[3] == 0 {
+        return color;
+    }
+    [
+        (color[0] as u16 + (255 - color[0] as u16) * 3 / 4) as u8,
+        (color[1] as u16 + (255 - color[1] as u16) * 3 / 4) as u8,
+        (color[2] as u16 + (255 - color[2] as u16) * 3 / 4) as u8,
+        255,
+    ]
+}
+
+fn imp_color(symbol: char, hurt: bool) -> [u8; 4] {
+    let base = match symbol {
         'o' => [22, 8, 8, 255],
-        'b' => body,
+        'b' => [156, 30, 30, 255],
         'd' => [70, 14, 14, 255],
-        'g' => belly,
-        'e' => eye,
+        'g' => [112, 36, 36, 255],
+        'e' => [255, 224, 70, 255],
         'm' => [240, 240, 232, 255],
         'n' => [205, 192, 158, 255],
         _ => [0, 0, 0, 0],
-    }
+    };
+    brighten(base, hurt)
+}
+
+fn swarmer_color(symbol: char, hurt: bool) -> [u8; 4] {
+    let base = match symbol {
+        'o' => [10, 30, 15, 255],
+        'g' => [46, 156, 64, 255],
+        'd' => [22, 92, 36, 255],
+        's' => [128, 206, 86, 255],
+        'e' => [255, 72, 52, 255],
+        'm' => [236, 240, 224, 255],
+        _ => [0, 0, 0, 0],
+    };
+    brighten(base, hurt)
+}
+
+fn caster_color(symbol: char, hurt: bool) -> [u8; 4] {
+    let base = match symbol {
+        'o' => [20, 8, 35, 255],
+        'r' => [120, 54, 170, 255],
+        'd' => [64, 26, 100, 255],
+        'e' => [130, 255, 255, 255],
+        _ => [0, 0, 0, 0],
+    };
+    brighten(base, hurt)
 }
 
 fn render_grid(grid: &[&str], color: impl Fn(char) -> [u8; 4]) -> Sprite {
@@ -75,36 +148,27 @@ fn blit_cell(rgba: &mut [u8], width: u32, cell_x: u32, cell_y: u32, pixel: [u8; 
 }
 
 pub fn imp_idle() -> Sprite {
-    render_grid(IMP, |symbol| {
-        imp_palette(
-            symbol,
-            [150, 28, 28, 255],
-            [255, 224, 70, 255],
-            [110, 36, 36, 255],
-        )
-    })
-}
-
-pub fn imp_attack() -> Sprite {
-    render_grid(IMP, |symbol| {
-        imp_palette(
-            symbol,
-            [206, 64, 30, 255],
-            [255, 250, 210, 255],
-            [168, 54, 22, 255],
-        )
-    })
+    render_grid(IMP, |symbol| imp_color(symbol, false))
 }
 
 pub fn imp_hurt() -> Sprite {
-    render_grid(IMP, |symbol| {
-        imp_palette(
-            symbol,
-            [232, 196, 196, 255],
-            [255, 255, 255, 255],
-            [220, 180, 180, 255],
-        )
-    })
+    render_grid(IMP, |symbol| imp_color(symbol, true))
+}
+
+pub fn swarmer_idle() -> Sprite {
+    render_grid(SWARMER, |symbol| swarmer_color(symbol, false))
+}
+
+pub fn swarmer_hurt() -> Sprite {
+    render_grid(SWARMER, |symbol| swarmer_color(symbol, true))
+}
+
+pub fn caster_idle() -> Sprite {
+    render_grid(CASTER, |symbol| caster_color(symbol, false))
+}
+
+pub fn caster_hurt() -> Sprite {
+    render_grid(CASTER, |symbol| caster_color(symbol, true))
 }
 
 fn solid(width: u32, height: u32) -> Sprite {
@@ -138,8 +202,8 @@ pub fn medkit() -> Sprite {
     let size = 16 * SCALE;
     let mut sprite = solid(size, size);
     let outline = [24, 18, 14, 255];
-    let white = [236, 236, 230, 255];
-    let red = [206, 40, 36, 255];
+    let white = [236, 240, 236, 255];
+    let red = [228, 44, 40, 255];
     fill_rect(
         &mut sprite,
         SCALE,
@@ -180,7 +244,7 @@ pub fn ammo_box() -> Sprite {
     let mut sprite = solid(size, size);
     let outline = [22, 20, 12, 255];
     let shell = [40, 36, 30, 255];
-    let brass = [216, 176, 64, 255];
+    let brass = [240, 196, 72, 255];
     fill_rect(
         &mut sprite,
         2 * SCALE,
@@ -217,7 +281,7 @@ fn radial(size: u32, inner: [u8; 3], outer: [u8; 3]) -> Sprite {
                 continue;
             }
             let falloff = 1.0 - distance;
-            let alpha = (falloff * falloff * 255.0) as u8;
+            let alpha = (falloff.powf(1.4) * 255.0) as u8;
             let blend = distance;
             let red = (inner[0] as f32 * (1.0 - blend) + outer[0] as f32 * blend) as u8;
             let green = (inner[1] as f32 * (1.0 - blend) + outer[1] as f32 * blend) as u8;
@@ -228,10 +292,6 @@ fn radial(size: u32, inner: [u8; 3], outer: [u8; 3]) -> Sprite {
     sprite
 }
 
-pub fn muzzle() -> Sprite {
-    radial(96, [255, 248, 200], [240, 150, 30])
-}
-
-pub fn spark() -> Sprite {
-    radial(64, [255, 230, 180], [220, 70, 20])
+pub fn fireball() -> Sprite {
+    radial(96, [255, 248, 210], [240, 70, 18])
 }

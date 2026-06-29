@@ -1,3 +1,4 @@
+pub mod common;
 pub mod input;
 pub mod lifecycle;
 pub mod screens;

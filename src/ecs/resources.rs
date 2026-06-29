@@ -1,3 +1,5 @@
+use super::components::EnemyKind;
+use crate::tuning;
 use nalgebra_glm::Vec3;
 use nightshade::prelude::Entity;
 
@@ -18,20 +20,45 @@ pub struct ScreenState {
 pub struct PlayerState {
     pub player_entity: Option<Entity>,
     pub camera_entity: Option<Entity>,
+    pub dash_timer: f32,
+    pub dash_cooldown: f32,
+    pub dash_dir: Vec3,
+    pub iframes: f32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum WeaponKind {
+    #[default]
+    Shotgun,
+    Nailgun,
+}
+
+impl WeaponKind {
+    pub fn name(self) -> &'static str {
+        match self {
+            WeaponKind::Shotgun => "SHOTGUN",
+            WeaponKind::Nailgun => "NAILGUN",
+        }
+    }
 }
 
 pub struct WeaponState {
+    pub current: WeaponKind,
     pub ammo: u32,
     pub max_ammo: u32,
     pub cooldown: f32,
+    /// Brief crosshair kick when a shot lands.
+    pub hit_marker: f32,
 }
 
 impl Default for WeaponState {
     fn default() -> Self {
         Self {
-            ammo: 24,
-            max_ammo: 48,
+            current: WeaponKind::Shotgun,
+            ammo: tuning::START_AMMO,
+            max_ammo: tuning::MAX_AMMO,
             cooldown: 0.0,
+            hit_marker: 0.0,
         }
     }
 }
@@ -55,27 +82,48 @@ pub enum Phase {
     #[default]
     Playing,
     Dead,
-    Won,
 }
 
 #[derive(Default)]
 pub struct GameState {
     pub phase: Phase,
     pub wave: u32,
+    pub score: u32,
+    pub best_score: u32,
+    pub combo: u32,
+    pub combo_timer: f32,
+    pub score_flash: f32,
     pub damage_flash: f32,
+    pub shake: f32,
+    pub cam_kick: f32,
+    pub fov_pop: f32,
+    pub hitstop: f32,
+    pub spawn_timer: f32,
+    pub spawn_queue: Vec<EnemyKind>,
+    pub wave_break: f32,
+    pub random_state: u64,
+    pub seeded: bool,
 }
 
-pub struct Flash {
+/// A travelling enemy fireball. Linked to a billboard render entity.
+pub struct Projectile {
     pub entity: Entity,
     pub position: Vec3,
-    pub timer: f32,
+    pub velocity: Vec3,
     pub lifetime: f32,
-    pub base_scale: f32,
+    pub damage: f32,
 }
 
 #[derive(Default)]
-pub struct FlashState {
-    pub items: Vec<Flash>,
+pub struct ProjectileState {
+    pub items: Vec<Projectile>,
+}
+
+/// Short-lived render entities (particle bursts, tracer lines) tracked by
+/// time-to-live so they get despawned after their effect plays out.
+#[derive(Default)]
+pub struct TransientState {
+    pub items: Vec<(Entity, f32)>,
 }
 
 #[derive(Default)]
@@ -104,12 +152,15 @@ pub struct HudHandles {
     pub root: Entity,
     pub health_label: Entity,
     pub ammo_label: Entity,
-    pub enemies_label: Entity,
+    pub weapon_label: Entity,
     pub wave_label: Entity,
+    pub score_label: Entity,
+    pub combo_label: Entity,
     pub status_label: Entity,
     pub hint_label: Entity,
     pub crosshair: Entity,
     pub damage_overlay: Entity,
+    pub low_health_overlay: Entity,
 }
 
 #[derive(Default)]

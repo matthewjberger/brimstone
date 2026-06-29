@@ -1,40 +1,52 @@
 use crate::ecs::{BoomerWorld, ENGINE_ENTITY, EngineEntity, PICKUP, Pickup, PickupKind};
+use crate::systems::common::next_random;
 use crate::systems::world::textures::{MAT_AMMO, MAT_MEDKIT};
-use crate::systems::world::{audio, billboard, player};
-use nalgebra_glm::vec3;
+use crate::systems::world::{audio, billboard, fx, player};
+use crate::tuning;
+use nalgebra_glm::{Vec3, vec3};
+use nightshade::ecs::world::commands::{EcsCommand, queue_ecs_command};
 use nightshade::prelude::*;
 
-const PICKUP_RADIUS: f32 = 1.4;
-const HEALTH_AMOUNT: f32 = 25.0;
-const AMMO_AMOUNT: u32 = 12;
-const HOVER_HEIGHT: f32 = 0.6;
-const BOB_HEIGHT: f32 = 0.16;
-const BOB_SPEED: f32 = 2.5;
+const INITIAL_HEALTH: [(f32, f32); 2] = [(8.0, -8.0), (-9.0, 9.0)];
+const INITIAL_AMMO: [(f32, f32); 3] = [(9.0, 9.0), (-8.0, -8.0), (0.0, 13.0)];
 
-const HEALTH_SPOTS: [(f32, f32); 2] = [(6.0, -6.0), (-7.0, 7.0)];
-const AMMO_SPOTS: [(f32, f32); 3] = [(7.0, 7.0), (-6.0, -6.0), (0.0, 12.0)];
-
-pub fn spawn_all(boomer_world: &mut BoomerWorld, world: &mut World) {
-    for (x, z) in HEALTH_SPOTS {
-        spawn_pickup(boomer_world, world, PickupKind::Health, x, z);
+pub fn spawn_initial(boomer_world: &mut BoomerWorld, world: &mut World) {
+    for (x, z) in INITIAL_HEALTH {
+        spawn_pickup(boomer_world, world, PickupKind::Health, vec3(x, 0.0, z));
     }
-    for (x, z) in AMMO_SPOTS {
-        spawn_pickup(boomer_world, world, PickupKind::Ammo, x, z);
+    for (x, z) in INITIAL_AMMO {
+        spawn_pickup(boomer_world, world, PickupKind::Ammo, vec3(x, 0.0, z));
     }
 }
 
-fn spawn_pickup(
-    boomer_world: &mut BoomerWorld,
-    world: &mut World,
-    kind: PickupKind,
-    x: f32,
-    z: f32,
-) {
+/// Push-forward economy: kills drop what the player is short on, so staying
+/// aggressive sustains you and the drops pull you into the fight.
+pub fn maybe_drop(boomer_world: &mut BoomerWorld, world: &mut World, position: Vec3) {
+    let health_fraction =
+        boomer_world.resources.stats.health / boomer_world.resources.stats.max_health;
+    let ammo_fraction =
+        boomer_world.resources.weapon.ammo as f32 / boomer_world.resources.weapon.max_ammo as f32;
+    let roll = next_random(&mut boomer_world.resources.game.random_state);
+
+    let kind = if health_fraction < 0.5 && roll < 0.32 {
+        Some(PickupKind::Health)
+    } else if (ammo_fraction < 0.4 && roll < 0.55) || roll < tuning::AMMO_DROP_CHANCE {
+        Some(PickupKind::Ammo)
+    } else {
+        None
+    };
+
+    if let Some(kind) = kind {
+        spawn_pickup(boomer_world, world, kind, vec3(position.x, 0.0, position.z));
+    }
+}
+
+fn spawn_pickup(boomer_world: &mut BoomerWorld, world: &mut World, kind: PickupKind, ground: Vec3) {
     let material = match kind {
         PickupKind::Health => MAT_MEDKIT,
         PickupKind::Ammo => MAT_AMMO,
     };
-    let position = vec3(x, HOVER_HEIGHT, z);
+    let position = vec3(ground.x, tuning::PICKUP_HOVER, ground.z);
     let engine = billboard::spawn(world, material, position, vec3(0.9, 0.9, 1.0));
     let game_entity = boomer_world.spawn_entities(PICKUP | ENGINE_ENTITY, 1)[0];
     boomer_world.set_engine_entity(game_entity, EngineEntity(engine));
@@ -43,7 +55,7 @@ fn spawn_pickup(
         Pickup {
             position,
             kind,
-            bob_phase: x + z,
+            bob_phase: ground.x + ground.z,
         },
     );
 }
@@ -61,15 +73,16 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         })
         .collect();
 
-    let mut removed: Vec<(Entity, Entity)> = Vec::new();
+    let mut collected: Vec<(Entity, Entity, Vec3, PickupKind)> = Vec::new();
     for (game_entity, engine, pickup) in snapshots {
         let mut updated = pickup;
-        updated.bob_phase += delta * BOB_SPEED;
-        updated.position.y = HOVER_HEIGHT + updated.bob_phase.sin() * BOB_HEIGHT;
+        updated.bob_phase += delta * tuning::PICKUP_BOB_SPEED;
+        updated.position.y =
+            tuning::PICKUP_HOVER + updated.bob_phase.sin() * tuning::PICKUP_BOB_HEIGHT;
 
         let mut offset = player_position - updated.position;
         offset.y = 0.0;
-        let close = offset.norm() < PICKUP_RADIUS;
+        let close = offset.norm() < tuning::PICKUP_RADIUS;
         let wanted = match updated.kind {
             PickupKind::Health => {
                 boomer_world.resources.stats.health < boomer_world.resources.stats.max_health
@@ -80,27 +93,32 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         };
 
         if close && wanted {
-            match updated.kind {
-                PickupKind::Health => {
-                    let max = boomer_world.resources.stats.max_health;
-                    boomer_world.resources.stats.health =
-                        (boomer_world.resources.stats.health + HEALTH_AMOUNT).min(max);
-                }
-                PickupKind::Ammo => {
-                    let max = boomer_world.resources.weapon.max_ammo;
-                    boomer_world.resources.weapon.ammo =
-                        (boomer_world.resources.weapon.ammo + AMMO_AMOUNT).min(max);
-                }
-            }
-            audio::play(boomer_world, world, audio::PICKUP, 0.8);
-            removed.push((game_entity, engine));
+            collected.push((game_entity, engine, updated.position, updated.kind));
         } else if let Some(slot) = boomer_world.get_pickup_mut(game_entity) {
             *slot = updated;
         }
     }
 
-    for (game_entity, engine) in removed {
-        despawn_recursive_immediate(world, engine);
+    for (game_entity, engine, position, kind) in collected {
+        match kind {
+            PickupKind::Health => {
+                let max = boomer_world.resources.stats.max_health;
+                boomer_world.resources.stats.health =
+                    (boomer_world.resources.stats.health + tuning::HEALTH_PICKUP_AMOUNT).min(max);
+            }
+            PickupKind::Ammo => {
+                let max = boomer_world.resources.weapon.max_ammo;
+                boomer_world.resources.weapon.ammo =
+                    (boomer_world.resources.weapon.ammo + tuning::AMMO_PICKUP_AMOUNT).min(max);
+            }
+        }
+        let color = match kind {
+            PickupKind::Health => vec3(0.4, 1.0, 0.5),
+            PickupKind::Ammo => vec3(1.0, 0.85, 0.3),
+        };
+        fx::hit(boomer_world, world, position, color);
+        audio::play(boomer_world, world, audio::PICKUP, 0.7);
+        queue_ecs_command(world, EcsCommand::DespawnRecursive { entity: engine });
         boomer_world.despawn_entities(&[game_entity]);
     }
 }
@@ -115,7 +133,7 @@ pub fn despawn_all(boomer_world: &mut BoomerWorld, world: &mut World) {
         })
         .collect();
     for engine in engines {
-        despawn_recursive_immediate(world, engine);
+        queue_ecs_command(world, EcsCommand::DespawnRecursive { entity: engine });
     }
     let game_entities: Vec<Entity> = boomer_world.query_entities(PICKUP).collect();
     if !game_entities.is_empty() {

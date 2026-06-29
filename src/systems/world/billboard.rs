@@ -47,12 +47,6 @@ pub fn spawn(world: &mut World, material: &str, position: Vec3, scale: Vec3) -> 
     entity
 }
 
-pub fn set_material(world: &mut World, entity: Entity, material: &str) {
-    world
-        .core
-        .set_material_ref(entity, MaterialRef::new(material.to_string()));
-}
-
 pub fn camera_position(boomer_world: &BoomerWorld, world: &World) -> Vec3 {
     boomer_world
         .resources
@@ -108,14 +102,14 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         face(world, engine, position, camera);
     }
 
-    let flashes: Vec<(Entity, Vec3)> = boomer_world
+    let projectiles: Vec<(Entity, Vec3)> = boomer_world
         .resources
-        .flashes
+        .projectiles
         .items
         .iter()
-        .map(|flash| (flash.entity, flash.position))
+        .map(|projectile| (projectile.entity, projectile.position))
         .collect();
-    for (entity, position) in flashes {
+    for (entity, position) in projectiles {
         face(world, entity, position, camera);
     }
 }

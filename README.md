@@ -1,18 +1,20 @@
 # Boomer
 
-A boomer-shooter vertical slice built on the [nightshade](https://github.com/matthewjberger/nightshade) engine. Clear an arena of billboard imps across three waves with a hitscan shotgun. Runs natively and in the browser via WebAssembly.
+An arcade boomer-shooter built on the [nightshade](https://github.com/matthewjberger/nightshade) engine. Survive an endless, escalating horde in a neon arena. Kills drop health and ammo, so standing still starves you. The only way to live is to keep moving and keep killing. Runs natively and in the browser via WebAssembly.
 
 ## Play
 
 - **WASD** / left stick: move
 - **Mouse** / right stick: look
-- **Shift** / left trigger: sprint
-- **Space** / A: jump
 - **Left click** / right trigger: shoot
+- **Ctrl** / B: dash (brief invulnerability, dodge through fire)
+- **Space** / A: jump
+- **Shift** / left trigger: sprint
+- **1 / 2** / d-pad: switch weapon
 - **Esc** / Start: pause
-- **R** / A (on the end screen): restart
+- **R** / A: retry after death
 
-Grab the floating medkits and ammo boxes, survive the waves, clear the arena.
+Two weapons with a real tradeoff: the shotgun is a heavy close-range burst, the nailgun is a fast spray that picks off ranged casters. Three enemies, three problems: imps body-block, swarmers rush your flanks, and casters lob fireballs you have to dash around. Chain kills to climb the score multiplier.
 
 ## Run
 

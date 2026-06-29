@@ -1,12 +1,11 @@
-use crate::ecs::{BoomerWorld, ENEMY, Screen, TitleHandles};
+use crate::ecs::{BoomerWorld, Screen, TitleHandles};
 use crate::systems::lifecycle;
 use crate::systems::screens::menu_button;
-use crate::systems::world::game;
 use crate::theme::*;
 use nightshade::prelude::*;
 
 const TITLE_TEXT: &str = "BOOMER";
-const SUBTITLE_TEXT: &str = "CLEAR THE ARENA";
+const SUBTITLE_TEXT: &str = "SURVIVE THE HORDE";
 
 pub fn build(tree: &mut UiTreeBuilder) -> TitleHandles {
     let root = tree
@@ -69,7 +68,7 @@ pub fn build(tree: &mut UiTreeBuilder) -> TitleHandles {
                 Anchor::Center,
             )
             .with_text(
-                "WASD / LEFT STICK MOVE  /  MOUSE / RIGHT STICK LOOK  /  LMB / RT SHOOT  /  SPACE / A JUMP  /  ESC / START PAUSE",
+                "MOVE WASD  /  SHOOT LMB  /  DASH CTRL  /  JUMP SPACE  /  WEAPONS 1-2  /  SPRINT SHIFT  /  PAUSE ESC  (full gamepad support)",
                 12.0,
             )
             .text_center()
@@ -100,9 +99,6 @@ pub fn handle_input(boomer_world: &mut BoomerWorld, world: &mut World) {
         }
     }
     if clicked_play {
-        if boomer_world.query_entities(ENEMY).next().is_none() {
-            game::start(boomer_world, world);
-        }
         lifecycle::enter(boomer_world, world, Screen::InGame);
     }
     if clicked_quit {

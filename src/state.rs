@@ -20,18 +20,34 @@ impl State for Boomer {
         systems::screens::pause::handle_input(&mut self.boomer_world, world);
 
         if matches!(self.boomer_world.resources.screen.current, Screen::InGame) {
-            if matches!(self.boomer_world.resources.game.phase, Phase::Playing) {
+            let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
+            let playing = matches!(self.boomer_world.resources.game.phase, Phase::Playing);
+            let frozen = {
+                let game = &mut self.boomer_world.resources.game;
+                if game.hitstop > 0.0 {
+                    game.hitstop -= delta;
+                    true
+                } else {
+                    false
+                }
+            };
+
+            if playing && !frozen {
                 first_person_camera_look_system(world);
                 systems::world::player::movement(&mut self.boomer_world, world);
                 systems::world::weapon::update(&mut self.boomer_world, world);
                 systems::world::enemies::update(&mut self.boomer_world, world);
+                systems::world::projectiles::update(&mut self.boomer_world, world);
                 systems::world::pickups::update(&mut self.boomer_world, world);
+                systems::world::game::tick(&mut self.boomer_world, world);
             }
-            systems::world::flash::update(&mut self.boomer_world, world);
+
+            systems::world::player::apply_camera_feel(&mut self.boomer_world, world);
             systems::world::billboard::update(&mut self.boomer_world, world);
+            systems::world::fx::tick(&mut self.boomer_world, world);
         }
 
         systems::world::audio::tick(&mut self.boomer_world, world);
-        systems::screens::hud::update(&mut self.boomer_world, world);
+        systems::screens::hud::update(&self.boomer_world, world);
     }
 }

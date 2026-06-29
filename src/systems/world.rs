@@ -1,10 +1,11 @@
 pub mod audio;
 pub mod billboard;
 pub mod enemies;
-pub mod flash;
+pub mod fx;
 pub mod game;
 pub mod level;
 pub mod pickups;
 pub mod player;
+pub mod projectiles;
 pub mod textures;
 pub mod weapon;

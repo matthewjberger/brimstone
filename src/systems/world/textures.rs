@@ -10,18 +10,23 @@ use nightshade::render::wgpu::texture_cache::{
     SamplerSettings, TextureUsage, texture_cache_protect,
 };
 
-pub const FLOOR_TEXTURE: &str = "boomer_floor";
-pub const WALL_TEXTURE: &str = "boomer_wall";
+pub const FLOOR_TEXTURE: &str = "boom_floor";
+pub const WALL_TEXTURE: &str = "boom_wall";
+pub const PLATFORM_TEXTURE: &str = "boom_platform";
+pub const PILLAR_TEXTURE: &str = "boom_pillar";
+pub const ACCENT_TEXTURE: &str = "boom_accent";
 
-pub const MAT_IMP_IDLE: &str = "boomer_mat_imp_idle";
-pub const MAT_IMP_ATTACK: &str = "boomer_mat_imp_attack";
-pub const MAT_IMP_HURT: &str = "boomer_mat_imp_hurt";
-pub const MAT_MEDKIT: &str = "boomer_mat_medkit";
-pub const MAT_AMMO: &str = "boomer_mat_ammo";
-pub const MAT_MUZZLE: &str = "boomer_mat_muzzle";
-pub const MAT_SPARK: &str = "boomer_mat_spark";
+pub const MAT_IMP_IDLE: &str = "boom_mat_imp_idle";
+pub const MAT_IMP_HURT: &str = "boom_mat_imp_hurt";
+pub const MAT_SWARM_IDLE: &str = "boom_mat_swarm_idle";
+pub const MAT_SWARM_HURT: &str = "boom_mat_swarm_hurt";
+pub const MAT_CASTER_IDLE: &str = "boom_mat_caster_idle";
+pub const MAT_CASTER_HURT: &str = "boom_mat_caster_hurt";
+pub const MAT_FIREBALL: &str = "boom_mat_fireball";
+pub const MAT_MEDKIT: &str = "boom_mat_medkit";
+pub const MAT_AMMO: &str = "boom_mat_ammo";
 
-pub const BILLBOARD_MESH: &str = "boomer_billboard";
+pub const BILLBOARD_MESH: &str = "boom_billboard";
 
 const PROTOTYPE_TEXTURES: &[(&str, &[u8])] = &[
     (
@@ -31,6 +36,18 @@ const PROTOTYPE_TEXTURES: &[(&str, &[u8])] = &[
     (
         WALL_TEXTURE,
         include_bytes!("../../../assets/textures/prototype/red/texture_05.png") as &[u8],
+    ),
+    (
+        PLATFORM_TEXTURE,
+        include_bytes!("../../../assets/textures/prototype/light/texture_06.png") as &[u8],
+    ),
+    (
+        PILLAR_TEXTURE,
+        include_bytes!("../../../assets/textures/prototype/purple/texture_01.png") as &[u8],
+    ),
+    (
+        ACCENT_TEXTURE,
+        include_bytes!("../../../assets/textures/prototype/green/texture_06.png") as &[u8],
     ),
 ];
 
@@ -42,21 +59,41 @@ pub fn load(world: &mut World) {
         SamplerSettings::DEFAULT,
     );
 
-    upload_sprite(world, "boomer_imp_idle", art::imp_idle());
-    upload_sprite(world, "boomer_imp_attack", art::imp_attack());
-    upload_sprite(world, "boomer_imp_hurt", art::imp_hurt());
-    upload_sprite(world, "boomer_medkit", art::medkit());
-    upload_sprite(world, "boomer_ammo", art::ammo_box());
-    upload_sprite(world, "boomer_muzzle", art::muzzle());
-    upload_sprite(world, "boomer_spark", art::spark());
+    upload_sprite(world, "boom_imp_idle", art::imp_idle());
+    upload_sprite(world, "boom_imp_hurt", art::imp_hurt());
+    upload_sprite(world, "boom_swarm_idle", art::swarmer_idle());
+    upload_sprite(world, "boom_swarm_hurt", art::swarmer_hurt());
+    upload_sprite(world, "boom_caster_idle", art::caster_idle());
+    upload_sprite(world, "boom_caster_hurt", art::caster_hurt());
+    upload_sprite(world, "boom_fireball", art::fireball());
+    upload_sprite(world, "boom_medkit", art::medkit());
+    upload_sprite(world, "boom_ammo", art::ammo_box());
 
-    register_material(world, MAT_IMP_IDLE, sprite_material("boomer_imp_idle"));
-    register_material(world, MAT_IMP_ATTACK, sprite_material("boomer_imp_attack"));
-    register_material(world, MAT_IMP_HURT, sprite_material("boomer_imp_hurt"));
-    register_material(world, MAT_MEDKIT, sprite_material("boomer_medkit"));
-    register_material(world, MAT_AMMO, sprite_material("boomer_ammo"));
-    register_material(world, MAT_MUZZLE, glow_material("boomer_muzzle"));
-    register_material(world, MAT_SPARK, glow_material("boomer_spark"));
+    register_material(world, MAT_IMP_IDLE, sprite_material("boom_imp_idle", 1.3));
+    register_material(world, MAT_IMP_HURT, sprite_material("boom_imp_hurt", 2.4));
+    register_material(
+        world,
+        MAT_SWARM_IDLE,
+        sprite_material("boom_swarm_idle", 1.5),
+    );
+    register_material(
+        world,
+        MAT_SWARM_HURT,
+        sprite_material("boom_swarm_hurt", 2.4),
+    );
+    register_material(
+        world,
+        MAT_CASTER_IDLE,
+        sprite_material("boom_caster_idle", 1.6),
+    );
+    register_material(
+        world,
+        MAT_CASTER_HURT,
+        sprite_material("boom_caster_hurt", 2.6),
+    );
+    register_material(world, MAT_FIREBALL, glow_material("boom_fireball"));
+    register_material(world, MAT_MEDKIT, sprite_material("boom_medkit", 1.8));
+    register_material(world, MAT_AMMO, sprite_material("boom_ammo", 1.8));
 
     register_billboard_mesh(world);
 }
@@ -96,15 +133,35 @@ fn register_material(world: &mut World, name: &str, material: Material) {
 }
 
 pub fn floor_material() -> Material {
-    proto_material(FLOOR_TEXTURE, vec3(0.60, 0.58, 0.64), 0.92, 0.02, 10.0)
+    proto_material(FLOOR_TEXTURE, vec3(0.42, 0.40, 0.48), 0.92, 0.04, 12.0)
 }
 
 pub fn wall_material() -> Material {
-    proto_material(WALL_TEXTURE, vec3(0.74, 0.46, 0.44), 0.88, 0.04, 4.0)
+    proto_material(WALL_TEXTURE, vec3(0.62, 0.34, 0.34), 0.86, 0.06, 5.0)
+}
+
+pub fn platform_material() -> Material {
+    proto_material(PLATFORM_TEXTURE, vec3(0.55, 0.58, 0.66), 0.78, 0.08, 3.0)
 }
 
 pub fn pillar_material() -> Material {
-    proto_material(WALL_TEXTURE, vec3(0.46, 0.30, 0.30), 0.80, 0.05, 2.0)
+    proto_material(PILLAR_TEXTURE, vec3(0.46, 0.34, 0.62), 0.74, 0.10, 2.5)
+}
+
+pub fn accent_material() -> Material {
+    proto_material(ACCENT_TEXTURE, vec3(0.40, 0.60, 0.46), 0.7, 0.1, 2.0)
+}
+
+/// Solid emissive material for glowing landmark beacons.
+pub fn beacon_material(color: Vec3, strength: f32) -> Material {
+    Material {
+        base_color: [color.x, color.y, color.z, 1.0],
+        emissive_factor: [color.x, color.y, color.z],
+        emissive_strength: strength,
+        roughness: 0.35,
+        metallic: 0.0,
+        ..Default::default()
+    }
 }
 
 fn proto_material(
@@ -127,10 +184,13 @@ fn proto_material(
     }
 }
 
-fn sprite_material(texture: &str) -> Material {
+fn sprite_material(texture: &str, emissive_strength: f32) -> Material {
     Material {
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_texture: Some(texture.to_string()),
+        emissive_texture: Some(texture.to_string()),
+        emissive_factor: [1.0, 1.0, 1.0],
+        emissive_strength,
         alpha_mode: AlphaMode::Mask,
         alpha_cutoff: 0.5,
         unlit: true,
@@ -143,11 +203,12 @@ fn glow_material(texture: &str) -> Material {
     Material {
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_texture: Some(texture.to_string()),
+        emissive_texture: Some(texture.to_string()),
+        emissive_factor: [1.0, 0.6, 0.3],
+        emissive_strength: 5.0,
         alpha_mode: AlphaMode::Blend,
         unlit: true,
         double_sided: true,
-        emissive_factor: [1.0, 0.85, 0.5],
-        emissive_strength: 3.0,
         ..Default::default()
     }
 }
