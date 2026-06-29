@@ -1,0 +1,34 @@
+[package]
+name = "boom"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+edition = "2024"
+
+[lib]
+name = "boom_core"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[[bin]]
+name = "boom"
+path = "src/main.rs"
+
+[dependencies]
+nightshade = { version = "0.48.0", features = ["physics", "audio", "gamepad"] }
+nalgebra-glm = "0.20"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+
+[features]
+default = ["tracing"]
+steam = ["nightshade/steam"]
+tracing = ["nightshade/tracing"]
+
+[profile.wasm-release]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
