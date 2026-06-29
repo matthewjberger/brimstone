@@ -87,7 +87,6 @@ pub enum Phase {
 #[derive(Default)]
 pub struct GameState {
     pub phase: Phase,
-    pub wave: u32,
     pub score: u32,
     pub best_score: u32,
     pub combo: u32,
@@ -100,9 +99,19 @@ pub struct GameState {
     pub hitstop: f32,
     pub spawn_timer: f32,
     pub spawn_queue: Vec<EnemyKind>,
-    pub wave_break: f32,
     pub random_state: u64,
     pub seeded: bool,
+}
+
+#[derive(Default)]
+pub struct LevelState {
+    pub index: usize,
+    pub cycle: u32,
+    pub geometry: Vec<Entity>,
+    pub exit_entity: Option<Entity>,
+    pub exit_position: Vec3,
+    pub exit_active: bool,
+    pub banner: f32,
 }
 
 /// A travelling enemy fireball. Linked to a billboard render entity.

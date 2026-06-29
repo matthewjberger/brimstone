@@ -72,7 +72,7 @@ pub const SWARM_HEIGHT: f32 = 1.3;
 pub const CASTER_HEALTH: f32 = 22.0;
 pub const CASTER_SPEED: f32 = 2.8;
 pub const CASTER_PREFERRED_RANGE: f32 = 11.0;
-pub const CASTER_FIRE_COOLDOWN: f32 = 1.9;
+pub const CASTER_FIRE_COOLDOWN: f32 = 2.7;
 pub const CASTER_SCORE: u32 = 150;
 pub const CASTER_WIDTH: f32 = 1.4;
 pub const CASTER_HEIGHT: f32 = 1.8;
@@ -105,13 +105,9 @@ pub const HITSTOP_SHOTGUN: f32 = 0.03;
 pub const COMBO_WINDOW: f32 = 3.2;
 pub const SCORE_FLASH_TIME: f32 = 0.35;
 
-// Waves / spawning
-pub const WAVE_BASE_COUNT: u32 = 5;
-pub const WAVE_COUNT_PER_WAVE: u32 = 2;
+// Spawning
 pub const SPAWN_INTERVAL: f32 = 0.7;
 pub const SPAWN_INTERVAL_MIN: f32 = 0.28;
-pub const SPAWN_RADIUS: f32 = 17.0;
-pub const WAVE_BREAK: f32 = 1.6;
 
 // Pickups
 pub const PICKUP_RADIUS: f32 = 1.5;

@@ -25,6 +25,7 @@ pub const MAT_CASTER_HURT: &str = "boom_mat_caster_hurt";
 pub const MAT_FIREBALL: &str = "boom_mat_fireball";
 pub const MAT_MEDKIT: &str = "boom_mat_medkit";
 pub const MAT_AMMO: &str = "boom_mat_ammo";
+pub const MAT_EXIT: &str = "boom_mat_exit";
 
 pub const BILLBOARD_MESH: &str = "boom_billboard";
 
@@ -94,6 +95,7 @@ pub fn load(world: &mut World) {
     register_material(world, MAT_FIREBALL, glow_material("boom_fireball"));
     register_material(world, MAT_MEDKIT, sprite_material("boom_medkit", 1.8));
     register_material(world, MAT_AMMO, sprite_material("boom_ammo", 1.8));
+    register_material(world, MAT_EXIT, beacon_material(vec3(0.3, 1.8, 0.7), 5.0));
 
     register_billboard_mesh(world);
 }

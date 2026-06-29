@@ -1,3 +1,4 @@
+use crate::content;
 use crate::ecs::{BoomerWorld, HudHandles, Phase, Screen};
 use crate::systems::common::combo_multiplier;
 use crate::theme::*;
@@ -184,7 +185,13 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
         boomer_world.resources.weapon.current.name(),
     );
     ui_set_text(world, hud.score_label, &format!("{}", game.score));
-    ui_set_text(world, hud.wave_label, &format!("WAVE {}", game.wave.max(1)));
+    let level = &boomer_world.resources.level;
+    let definition = content::level(level.index);
+    ui_set_text(
+        world,
+        hud.wave_label,
+        &format!("LEVEL {}: {}", level.index + 1, definition.name),
+    );
 
     let score_lit = lerp(
         &WHITE,
@@ -211,20 +218,31 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
         lerp(&CROSSHAIR, &vec4(1.0, 0.4, 0.3, 1.0), hit),
     );
 
-    let show_status = in_game && matches!(phase, Phase::Dead);
+    let dead = in_game && matches!(phase, Phase::Dead);
+    let exit_open = playing && level.exit_active;
+    let intro = playing && level.banner > 0.0 && !exit_open;
+    let show_status = dead || exit_open || intro;
     ui_set_visible(world, hud.status_label, show_status);
     ui_set_visible(world, hud.hint_label, show_status);
-    if show_status {
+    if dead {
         ui_set_text(world, hud.status_label, "YOU DIED");
         ui_set_text(
             world,
             hud.hint_label,
             &format!(
-                "SCORE {}    BEST {}    -    R / (A) TO RETRY",
+                "SCORE {}     BEST {}     R / (A) TO RETRY",
                 game.score, game.best_score
             ),
         );
         set_color(world, hud.status_label, HEALTH);
+    } else if exit_open {
+        ui_set_text(world, hud.status_label, "LEVEL CLEAR");
+        ui_set_text(world, hud.hint_label, "REACH THE GREEN GATE");
+        set_color(world, hud.status_label, vec4(0.4, 1.0, 0.6, 1.0));
+    } else if intro {
+        ui_set_text(world, hud.status_label, definition.name);
+        ui_set_text(world, hud.hint_label, &format!("LEVEL {}", level.index + 1));
+        set_color(world, hud.status_label, ACCENT);
     }
 
     let flash = (game.damage_flash / tuning::DAMAGE_FLASH_TIME).clamp(0.0, 1.0);

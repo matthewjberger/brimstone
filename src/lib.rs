@@ -6,6 +6,7 @@
 //! state shell forwarding to system functions over a user-side ECS world.
 
 mod art;
+mod content;
 mod ecs;
 mod state;
 mod systems;

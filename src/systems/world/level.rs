@@ -1,151 +1,164 @@
-use crate::systems::world::textures;
+use crate::content::{BlockKind, Level};
+use crate::ecs::BoomerWorld;
+use crate::systems::world::textures::{self, MAT_EXIT};
 use crate::tuning;
 use nalgebra_glm::{Vec3, vec3};
+use nightshade::ecs::graphics::resources::Fog;
 use nightshade::ecs::light::components::{Light, LightType};
 use nightshade::ecs::particles::components::{
     ColorGradient, EmitterShape, EmitterType, ParticleEmitter,
 };
 use nightshade::ecs::physics::commands::spawn_static_physics_cube_with_material;
-use nightshade::ecs::world::commands::spawn_light_entity;
+use nightshade::ecs::world::commands::{spawn_light_entity, spawn_mesh_at};
 use nightshade::prelude::*;
 
-pub const PLAYER_SPAWN: Vec3 = Vec3::new(0.0, 1.2, 13.0);
+pub const PLAYER_SPAWN: Vec3 = Vec3::new(0.0, 1.2, 14.0);
 
 const WALL_HEIGHT: f32 = 8.0;
 const WALL_THICKNESS: f32 = 1.0;
 
-/// Cover pillars: (x, z, height, half_extent). Placed off the cardinal lanes
-/// so there are clear running lines between them, but they break sightlines.
-const PILLARS: [(f32, f32, f32, f32); 6] = [
-    (8.5, 5.0, 4.0, 0.9),
-    (-7.5, 8.0, 2.6, 1.1),
-    (-9.5, -5.5, 4.5, 0.8),
-    (6.5, -9.0, 2.2, 1.2),
-    (12.5, -3.0, 3.2, 0.9),
-    (-12.0, 2.5, 3.6, 0.85),
-];
+pub fn build(boomer_world: &mut BoomerWorld, world: &mut World, level: &Level) {
+    let settings = &mut world.resources.render_settings;
+    settings.atmosphere = level.atmosphere;
+    settings.fog = Some(Fog {
+        color: level.fog,
+        start: 16.0,
+        end: 60.0,
+    });
+    capture_procedural_atmosphere_ibl(world, level.atmosphere, 0.0);
 
-/// Low peeking cover: (x, z, half_x, half_z).
-const LOW_COVER: [(f32, f32, f32, f32); 4] = [
-    (4.0, 8.5, 1.6, 0.7),
-    (-4.5, -8.0, 1.6, 0.7),
-    (9.0, 1.0, 0.7, 1.6),
-    (-9.0, -1.0, 0.7, 1.6),
-];
-
-/// Internal choke walls that carve lanes: (cx, cz, half_x, half_z, height).
-const CHOKE_WALLS: [(f32, f32, f32, f32, f32); 4] = [
-    (5.5, 0.0, 0.5, 4.0, 2.6),
-    (-5.5, 0.0, 0.5, 4.0, 2.6),
-    (0.0, 6.0, 4.0, 0.5, 2.6),
-    (0.0, -6.0, 4.0, 0.5, 2.6),
-];
-
-/// Glowing landmark beacons: (x, z, color). Bright HDR colors so they bloom and
-/// give the player something to orient and kite around.
-const BEACONS: [(f32, f32, [f32; 3]); 4] = [
-    (5.0, 5.0, [0.2, 1.5, 1.8]),
-    (-5.0, 5.0, [1.6, 0.3, 1.5]),
-    (5.0, -5.0, [1.7, 0.8, 0.2]),
-    (-5.0, -5.0, [0.3, 1.6, 0.5]),
-];
-
-pub fn build(world: &mut World) {
+    let mut geometry: Vec<Entity> = Vec::new();
     let span = tuning::ARENA_HALF * 2.0;
 
-    spawn_block(
+    geometry.push(spawn_block(
         world,
         "Floor",
         vec3(0.0, -0.5, 0.0),
         vec3(span, 1.0, span),
         textures::floor_material(),
-    );
+    ));
 
     let edge = tuning::ARENA_HALF + WALL_THICKNESS * 0.5;
     let wall_length = span + WALL_THICKNESS * 2.0;
     let height_center = WALL_HEIGHT * 0.5;
-    spawn_block(
+    geometry.push(spawn_block(
         world,
-        "WallN",
+        "Wall",
         vec3(0.0, height_center, -edge),
         vec3(wall_length, WALL_HEIGHT, WALL_THICKNESS),
         textures::wall_material(),
-    );
-    spawn_block(
+    ));
+    geometry.push(spawn_block(
         world,
-        "WallS",
+        "Wall",
         vec3(0.0, height_center, edge),
         vec3(wall_length, WALL_HEIGHT, WALL_THICKNESS),
         textures::wall_material(),
-    );
-    spawn_block(
+    ));
+    geometry.push(spawn_block(
         world,
-        "WallW",
+        "Wall",
         vec3(-edge, height_center, 0.0),
         vec3(WALL_THICKNESS, WALL_HEIGHT, wall_length),
         textures::wall_material(),
-    );
-    spawn_block(
+    ));
+    geometry.push(spawn_block(
         world,
-        "WallE",
+        "Wall",
         vec3(edge, height_center, 0.0),
         vec3(WALL_THICKNESS, WALL_HEIGHT, wall_length),
         textures::wall_material(),
-    );
+    ));
 
-    spawn_block(
-        world,
-        "Monument",
-        vec3(0.0, 3.5, 0.0),
-        vec3(3.0, 7.0, 3.0),
-        textures::pillar_material(),
-    );
-
-    for (x, z, height, half) in PILLARS {
-        spawn_block(
+    for (cx, cy, cz, sx, sy, sz, kind) in level.blocks {
+        geometry.push(spawn_block(
             world,
-            "Pillar",
-            vec3(x, height * 0.5, z),
-            vec3(half * 2.0, height, half * 2.0),
-            textures::pillar_material(),
-        );
+            "Block",
+            vec3(*cx, *cy, *cz),
+            vec3(*sx, *sy, *sz),
+            material_for(*kind),
+        ));
     }
 
-    for (x, z, half_x, half_z) in LOW_COVER {
-        spawn_block(
-            world,
-            "Cover",
-            vec3(x, 0.45, z),
-            vec3(half_x * 2.0, 0.9, half_z * 2.0),
-            textures::platform_material(),
-        );
-    }
-
-    for (cx, cz, half_x, half_z, height) in CHOKE_WALLS {
-        spawn_block(
-            world,
-            "Choke",
-            vec3(cx, height * 0.5, cz),
-            vec3(half_x * 2.0, height, half_z * 2.0),
-            textures::accent_material(),
-        );
-    }
-
-    for (x, z, color) in BEACONS {
+    for (x, z, color) in level.beacons {
         let color = vec3(color[0], color[1], color[2]);
-        spawn_block(
+        geometry.push(spawn_block(
             world,
             "Beacon",
-            vec3(x, 2.5, z),
+            vec3(*x, 2.5, *z),
             vec3(0.7, 5.0, 0.7),
             textures::beacon_material(color, 2.6),
-        );
-        spawn_lamp(world, vec3(x, 3.0, z), color, 30.0, 15.0);
-        spawn_embers(world, vec3(x, 0.2, z), color);
+        ));
+        geometry.push(spawn_lamp(world, vec3(*x, 3.0, *z), color, 28.0, 15.0));
+        geometry.push(spawn_embers(world, vec3(*x, 0.2, *z), color));
     }
 
-    spawn_sun(world);
-    spawn_lamp(world, vec3(0.0, 8.0, 0.0), vec3(0.6, 0.6, 0.9), 40.0, 26.0);
+    let exit_position = vec3(level.exit[0], 0.0, level.exit[1]);
+    let exit = spawn_mesh_at(
+        world,
+        "Cube",
+        vec3(exit_position.x, 2.4, exit_position.z),
+        vec3(2.6, 4.8, 0.5),
+    );
+    if let Some(name) = world.core.get_name_mut(exit) {
+        name.0 = "Exit".to_string();
+    }
+    world
+        .core
+        .set_material_ref(exit, MaterialRef::new(MAT_EXIT.to_string()));
+    world
+        .core
+        .set_visibility(exit, Visibility { visible: false });
+    geometry.push(exit);
+
+    geometry.push(spawn_sun(world));
+    geometry.push(spawn_lamp(
+        world,
+        vec3(0.0, 9.0, 0.0),
+        vec3(0.55, 0.55, 0.85),
+        38.0,
+        28.0,
+    ));
+
+    boomer_world.resources.level.geometry = geometry;
+    boomer_world.resources.level.exit_entity = Some(exit);
+    boomer_world.resources.level.exit_position = exit_position;
+    boomer_world.resources.level.exit_active = false;
+}
+
+pub fn despawn(boomer_world: &mut BoomerWorld, world: &mut World) {
+    for entity in boomer_world.resources.level.geometry.drain(..) {
+        despawn_recursive_immediate(world, entity);
+    }
+    boomer_world.resources.level.exit_entity = None;
+}
+
+pub fn open_exit(boomer_world: &mut BoomerWorld, world: &mut World) {
+    boomer_world.resources.level.exit_active = true;
+    if let Some(exit) = boomer_world.resources.level.exit_entity {
+        world
+            .core
+            .set_visibility(exit, Visibility { visible: true });
+    }
+    let position = boomer_world.resources.level.exit_position;
+    let lamp = spawn_lamp(
+        world,
+        vec3(position.x, 2.5, position.z),
+        vec3(0.3, 1.8, 0.7),
+        60.0,
+        18.0,
+    );
+    boomer_world.resources.level.geometry.push(lamp);
+}
+
+fn material_for(kind: BlockKind) -> Material {
+    match kind {
+        BlockKind::Wall => textures::wall_material(),
+        BlockKind::Pillar => textures::pillar_material(),
+        BlockKind::Cover => textures::platform_material(),
+        BlockKind::Choke => textures::accent_material(),
+        BlockKind::Monument => textures::pillar_material(),
+    }
 }
 
 fn spawn_block(
@@ -162,7 +175,13 @@ fn spawn_block(
     entity
 }
 
-fn spawn_lamp(world: &mut World, position: Vec3, color: Vec3, intensity: f32, range: f32) {
+fn spawn_lamp(
+    world: &mut World,
+    position: Vec3,
+    color: Vec3,
+    intensity: f32,
+    range: f32,
+) -> Entity {
     let entity = spawn_light_entity(world, position, "Lamp");
     world.core.set_light(
         entity,
@@ -174,9 +193,10 @@ fn spawn_lamp(world: &mut World, position: Vec3, color: Vec3, intensity: f32, ra
             ..Default::default()
         },
     );
+    entity
 }
 
-fn spawn_embers(world: &mut World, position: Vec3, color: Vec3) {
+fn spawn_embers(world: &mut World, position: Vec3, color: Vec3) -> Entity {
     let emitter = ParticleEmitter {
         emitter_type: EmitterType::Sparks,
         shape: EmitterShape::Sphere { radius: 0.5 },
@@ -210,4 +230,5 @@ fn spawn_embers(world: &mut World, position: Vec3, color: Vec3) {
     };
     let entity = spawn_entities(world, NAME | PARTICLE_EMITTER, 1)[0];
     world.core.set_particle_emitter(entity, emitter);
+    entity
 }

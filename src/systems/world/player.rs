@@ -230,19 +230,19 @@ pub fn position(boomer_world: &BoomerWorld, world: &World) -> Vec3 {
         .unwrap_or(PLAYER_SPAWN)
 }
 
-pub fn reset(boomer_world: &BoomerWorld, world: &mut World) {
+pub fn teleport(boomer_world: &BoomerWorld, world: &mut World, position: Vec3) {
     let Some(player) = boomer_world.resources.player.player_entity else {
         return;
     };
     if let Some(transform) = world.core.get_local_transform_mut(player) {
-        transform.translation = PLAYER_SPAWN;
+        transform.translation = position;
     }
     if let Some(controller) = world.core.get_character_controller_mut(player) {
         controller.velocity = Vec3::zeros();
     }
     if let Some(interpolation) = world.core.get_physics_interpolation_mut(player) {
-        interpolation.previous_translation = PLAYER_SPAWN;
-        interpolation.current_translation = PLAYER_SPAWN;
+        interpolation.previous_translation = position;
+        interpolation.current_translation = position;
     }
     mark_local_transform_dirty(world, player);
 }

@@ -1,7 +1,7 @@
 use crate::ecs::{BoomerWorld, Screen, UiHandles};
 use crate::systems::screens::{hud, pause, title};
-use crate::systems::world::{audio, game, level, player, textures};
-use nightshade::ecs::graphics::resources::{ColorGradingPreset, Fog};
+use crate::systems::world::{audio, game, player, textures};
+use nightshade::ecs::graphics::resources::ColorGradingPreset;
 use nightshade::prelude::*;
 
 pub fn initialize(boomer_world: &mut BoomerWorld, world: &mut World) {
@@ -9,22 +9,14 @@ pub fn initialize(boomer_world: &mut BoomerWorld, world: &mut World) {
     world.resources.retained_ui.enabled = true;
 
     let settings = &mut world.resources.render_settings;
-    settings.atmosphere = Atmosphere::Nebula;
     settings.bloom_enabled = true;
     settings.bloom_intensity = 0.9;
     settings.bloom_threshold = 0.7;
     settings.color_grading = ColorGradingPreset::Vibrant.to_color_grading();
     settings.ambient_light = [0.06, 0.05, 0.09, 1.0];
-    settings.fog = Some(Fog {
-        color: [0.05, 0.02, 0.10],
-        start: 16.0,
-        end: 58.0,
-    });
-    capture_procedural_atmosphere_ibl(world, Atmosphere::Nebula, 0.0);
 
     textures::load(world);
     audio::load(world);
-    level::build(world);
     player::spawn(boomer_world, world);
     game::start(boomer_world, world);
 

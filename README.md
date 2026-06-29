@@ -1,6 +1,6 @@
 # Boomer
 
-An arcade boomer-shooter built on the [nightshade](https://github.com/matthewjberger/nightshade) engine. Survive an endless, escalating horde in a neon arena. Kills drop health and ammo, so standing still starves you. The only way to live is to keep moving and keep killing. Runs natively and in the browser via WebAssembly.
+An arcade boomer-shooter built on the [nightshade](https://github.com/matthewjberger/nightshade) engine. Fight through a run of distinct neon levels, clear each one to open its exit gate, then push deeper as the difficulty loops and scales. Kills drop health and ammo, so standing still starves you. The only way to live is to keep moving and keep killing. Runs natively and in the browser via WebAssembly.
 
 ## Play
 

@@ -55,7 +55,7 @@ const CLIPS: &[(&str, &[u8])] = &[
     ),
     (
         FIREBALL,
-        include_bytes!("../../../assets/kenney/audio/door_open.ogg"),
+        include_bytes!("../../../assets/kenney/audio/ui_hover.ogg"),
     ),
     (
         DASH,

@@ -244,7 +244,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
     }
     for (origin, target) in fireballs {
         projectiles::spawn(boomer_world, world, origin, target);
-        audio::play(boomer_world, world, audio::FIREBALL, 0.7);
+        audio::play(boomer_world, world, audio::FIREBALL, 0.32);
     }
 
     for (game_entity, engine, enemy) in &snapshots {
