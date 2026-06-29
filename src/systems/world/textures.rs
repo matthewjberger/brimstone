@@ -115,6 +115,10 @@ fn register_material(world: &mut World, name: &str, material: Material) {
             &mut world.resources.assets.material_registry.registry,
             index,
         );
+        let protected = &mut world.resources.assets.material_registry.protected_indices;
+        if !protected.contains(&index) {
+            protected.push(index);
+        }
     }
 }
 
