@@ -10,10 +10,10 @@ pub fn initialize(boomer_world: &mut BoomerWorld, world: &mut World) {
 
     let settings = &mut world.resources.render_settings;
     settings.bloom_enabled = true;
-    settings.bloom_intensity = 0.9;
-    settings.bloom_threshold = 0.7;
+    settings.bloom_intensity = 0.35;
+    settings.bloom_threshold = 1.1;
     settings.color_grading = ColorGradingPreset::Vibrant.to_color_grading();
-    settings.ambient_light = [0.06, 0.05, 0.09, 1.0];
+    settings.ambient_light = [0.32, 0.31, 0.38, 1.0];
 
     textures::load(world);
     audio::load(world);

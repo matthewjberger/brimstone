@@ -70,31 +70,15 @@ pub fn load(world: &mut World) {
     upload_sprite(world, "boom_medkit", art::medkit());
     upload_sprite(world, "boom_ammo", art::ammo_box());
 
-    register_material(world, MAT_IMP_IDLE, sprite_material("boom_imp_idle", 1.3));
-    register_material(world, MAT_IMP_HURT, sprite_material("boom_imp_hurt", 2.4));
-    register_material(
-        world,
-        MAT_SWARM_IDLE,
-        sprite_material("boom_swarm_idle", 1.5),
-    );
-    register_material(
-        world,
-        MAT_SWARM_HURT,
-        sprite_material("boom_swarm_hurt", 2.4),
-    );
-    register_material(
-        world,
-        MAT_CASTER_IDLE,
-        sprite_material("boom_caster_idle", 1.6),
-    );
-    register_material(
-        world,
-        MAT_CASTER_HURT,
-        sprite_material("boom_caster_hurt", 2.6),
-    );
+    register_material(world, MAT_IMP_IDLE, sprite_material("boom_imp_idle"));
+    register_material(world, MAT_IMP_HURT, hurt_material("boom_imp_hurt"));
+    register_material(world, MAT_SWARM_IDLE, sprite_material("boom_swarm_idle"));
+    register_material(world, MAT_SWARM_HURT, hurt_material("boom_swarm_hurt"));
+    register_material(world, MAT_CASTER_IDLE, sprite_material("boom_caster_idle"));
+    register_material(world, MAT_CASTER_HURT, hurt_material("boom_caster_hurt"));
     register_material(world, MAT_FIREBALL, glow_material("boom_fireball"));
-    register_material(world, MAT_MEDKIT, sprite_material("boom_medkit", 1.8));
-    register_material(world, MAT_AMMO, sprite_material("boom_ammo", 1.8));
+    register_material(world, MAT_MEDKIT, sprite_material("boom_medkit"));
+    register_material(world, MAT_AMMO, sprite_material("boom_ammo"));
     register_material(world, MAT_EXIT, beacon_material(vec3(0.3, 1.8, 0.7), 5.0));
 
     register_billboard_mesh(world);
@@ -186,18 +170,27 @@ fn proto_material(
     }
 }
 
-fn sprite_material(texture: &str, emissive_strength: f32) -> Material {
+/// Crisp unlit sprite. Reads as flat pixel art, no bloom smear.
+fn sprite_material(texture: &str) -> Material {
     Material {
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_texture: Some(texture.to_string()),
-        emissive_texture: Some(texture.to_string()),
-        emissive_factor: [1.0, 1.0, 1.0],
-        emissive_strength,
         alpha_mode: AlphaMode::Mask,
         alpha_cutoff: 0.5,
         unlit: true,
         double_sided: true,
         ..Default::default()
+    }
+}
+
+/// Hurt frame gets a light emissive lift so the hit flash pops for its brief
+/// window, without the idle sprites glowing all the time.
+fn hurt_material(texture: &str) -> Material {
+    Material {
+        emissive_texture: Some(texture.to_string()),
+        emissive_factor: [1.0, 1.0, 1.0],
+        emissive_strength: 1.4,
+        ..sprite_material(texture)
     }
 }
 

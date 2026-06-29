@@ -14,7 +14,7 @@ pub const DASH_SPEED: f32 = 26.0;
 pub const DASH_TIME: f32 = 0.13;
 pub const DASH_COOLDOWN: f32 = 0.85;
 pub const DASH_IFRAMES: f32 = 0.2;
-pub const DASH_SHAKE: f32 = 0.18;
+pub const DASH_SHAKE: f32 = 0.1;
 
 // Weapons (shared)
 pub const WEAPON_RANGE: f32 = 70.0;
@@ -27,7 +27,7 @@ pub const SHOTGUN_SPREAD: f32 = 0.07;
 pub const SHOTGUN_DAMAGE: f32 = 9.0;
 pub const SHOTGUN_COOLDOWN: f32 = 0.55;
 pub const SHOTGUN_KNOCKBACK: f32 = 11.0;
-pub const SHOTGUN_SHAKE: f32 = 0.5;
+pub const SHOTGUN_SHAKE: f32 = 0.32;
 pub const SHOTGUN_KICK: f32 = 0.4;
 pub const SHOTGUN_FOV_POP: f32 = 6.0;
 
@@ -36,7 +36,7 @@ pub const NAIL_DAMAGE: f32 = 7.0;
 pub const NAIL_SPREAD: f32 = 0.02;
 pub const NAIL_COOLDOWN: f32 = 0.085;
 pub const NAIL_KNOCKBACK: f32 = 2.5;
-pub const NAIL_SHAKE: f32 = 0.12;
+pub const NAIL_SHAKE: f32 = 0.035;
 pub const NAIL_KICK: f32 = 0.09;
 pub const NAIL_FOV_POP: f32 = 1.6;
 
@@ -85,7 +85,7 @@ pub const FIREBALL_LIFETIME: f32 = 4.0;
 pub const FIREBALL_SCALE: f32 = 0.8;
 
 // Player damage feel
-pub const PLAYER_HIT_SHAKE: f32 = 0.7;
+pub const PLAYER_HIT_SHAKE: f32 = 0.5;
 pub const PLAYER_HIT_KICK: f32 = 0.6;
 pub const PLAYER_HIT_FOV_POP: f32 = 7.0;
 pub const DAMAGE_FLASH_TIME: f32 = 0.5;
@@ -95,8 +95,8 @@ pub const LOW_HEALTH_FRACTION: f32 = 0.3;
 pub const FOV_BASE_DEGREES: f32 = 90.0;
 pub const SHAKE_FREQ_X: f32 = 92.0;
 pub const SHAKE_FREQ_Y: f32 = 71.0;
-pub const SHAKE_AMPLITUDE: f32 = 0.14;
-pub const SHAKE_DECAY: f32 = 2.6;
+pub const SHAKE_AMPLITUDE: f32 = 0.09;
+pub const SHAKE_DECAY: f32 = 5.0;
 pub const KICK_DECAY: f32 = 8.0;
 pub const FOV_POP_DECAY: f32 = 7.0;
 pub const HITSTOP_SHOTGUN: f32 = 0.03;
