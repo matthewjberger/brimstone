@@ -1,5 +1,5 @@
 use crate::ecs::{BoomerWorld, Screen, UiHandles};
-use crate::systems::screens::{hud, pause, title};
+use crate::systems::screens::{hud, level_select, pause, title};
 use crate::systems::world::{audio, game, player, textures};
 use nightshade::ecs::graphics::resources::ColorGradingPreset;
 use nightshade::prelude::*;
@@ -18,14 +18,16 @@ pub fn initialize(boomer_world: &mut BoomerWorld, world: &mut World) {
     textures::load(world);
     audio::load(world);
     player::spawn(boomer_world, world);
-    game::start(boomer_world, world);
+    game::start_at(boomer_world, world, 0);
 
     let mut tree = UiTreeBuilder::new(world);
     let title_handles = title::build(&mut tree);
+    let level_select_handles = level_select::build(&mut tree);
     let pause_handles = pause::build(&mut tree);
     let hud_handles = hud::build(&mut tree);
     tree.finish();
     boomer_world.resources.ui_handles.title = title_handles;
+    boomer_world.resources.ui_handles.level_select = level_select_handles;
     boomer_world.resources.ui_handles.pause = pause_handles;
     boomer_world.resources.ui_handles.hud = hud_handles;
 
@@ -66,6 +68,12 @@ fn screen_config(handles: &UiHandles, screen: Screen) -> ScreenConfig {
             gamepad_nav: true,
             focus: Some(handles.title.play_button),
         },
+        Screen::LevelSelect => ScreenConfig {
+            physics_enabled: false,
+            cursor_locked: false,
+            gamepad_nav: true,
+            focus: handles.level_select.level_buttons.first().copied(),
+        },
         Screen::Paused => ScreenConfig {
             physics_enabled: false,
             cursor_locked: false,
@@ -85,6 +93,11 @@ fn apply_visibility(boomer_world: &BoomerWorld, world: &mut World) {
     let handles = &boomer_world.resources.ui_handles;
     let screen = boomer_world.resources.screen.current;
     ui_set_visible(world, handles.title.root, matches!(screen, Screen::Title));
+    ui_set_visible(
+        world,
+        handles.level_select.root,
+        matches!(screen, Screen::LevelSelect),
+    );
     ui_set_visible(world, handles.pause.root, matches!(screen, Screen::Paused));
     ui_set_visible(
         world,

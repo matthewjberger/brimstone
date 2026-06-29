@@ -1,11 +1,14 @@
-use crate::ecs::{BoomerWorld, PauseHandles, Screen};
+use crate::content;
+use crate::ecs::{BoomerWorld, LevelSelectHandles, Screen};
 use crate::systems::lifecycle;
 use crate::systems::screens::menu_button;
 use crate::systems::world::game;
 use crate::theme::*;
 use nightshade::prelude::*;
 
-pub fn build(tree: &mut UiTreeBuilder) -> PauseHandles {
+const BUTTON_GAP: f32 = 12.0;
+
+pub fn build(tree: &mut UiTreeBuilder) -> LevelSelectHandles {
     let root = tree
         .add_node()
         .boundary(Rl(vec2(0.0, 0.0)), Rl(vec2(100.0, 100.0)))
@@ -13,10 +16,12 @@ pub fn build(tree: &mut UiTreeBuilder) -> PauseHandles {
         .with_visible(false)
         .entity();
 
-    let mut resume_button = Entity::default();
-    let mut restart_button = Entity::default();
-    let mut main_menu_button = Entity::default();
-    let mut quit_button = Entity::default();
+    let mut level_buttons = Vec::new();
+    let mut back_button = Entity::default();
+
+    let rows = content::count() as f32 + 1.0;
+    let column_height = rows * MENU_BUTTON_HEIGHT + (rows - 1.0) * BUTTON_GAP;
+    let panel_height = column_height + 156.0;
 
     tree.in_parent(root, |tree| {
         tree.add_node()
@@ -27,7 +32,11 @@ pub fn build(tree: &mut UiTreeBuilder) -> PauseHandles {
 
         let panel = tree
             .add_node()
-            .window(Rl(vec2(50.0, 50.0)), Ab(vec2(380.0, 360.0)), Anchor::Center)
+            .window(
+                Rl(vec2(50.0, 50.0)),
+                Ab(vec2(400.0, panel_height)),
+                Anchor::Center,
+            )
             .with_rect(8.0, 1.0, PANEL_BORDER)
             .color_raw::<UiBase>(PANEL_BG_DEEP)
             .with_shadow(vec4(0.0, 0.0, 0.0, 0.7), vec2(0.0, 12.0), 36.0, 4.0)
@@ -36,10 +45,10 @@ pub fn build(tree: &mut UiTreeBuilder) -> PauseHandles {
             tree.add_node()
                 .window(
                     Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 32.0)),
-                    Ab(vec2(320.0, 36.0)),
+                    Ab(vec2(360.0, 36.0)),
                     Anchor::TopCenter,
                 )
-                .with_text("PAUSED", 28.0)
+                .with_text("SELECT LEVEL", 28.0)
                 .text_center()
                 .with_text_outline(ACCENT, 1.5)
                 .color_raw::<UiBase>(WHITE)
@@ -59,61 +68,53 @@ pub fn build(tree: &mut UiTreeBuilder) -> PauseHandles {
                 .add_node()
                 .window(
                     Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 108.0)),
-                    Ab(vec2(MENU_BUTTON_SIZE.x, 244.0)),
+                    Ab(vec2(MENU_BUTTON_SIZE.x, column_height)),
                     Anchor::TopCenter,
                 )
-                .flow(FlowDirection::Vertical, 0.0, 12.0)
+                .flow(FlowDirection::Vertical, 0.0, BUTTON_GAP)
                 .entity();
             tree.in_parent(column, |tree| {
-                resume_button = menu_button::build(tree, "RESUME");
-                restart_button = menu_button::build(tree, "RESTART");
-                main_menu_button = menu_button::build(tree, "MAIN MENU");
-                quit_button = menu_button::build(tree, "QUIT TO DESKTOP");
+                for index in 0..content::count() {
+                    let label = format!("{}   {}", index + 1, content::level(index).name);
+                    level_buttons.push(menu_button::build(tree, &label));
+                }
+                back_button = menu_button::build(tree, "BACK");
             });
         });
     });
 
-    PauseHandles {
+    LevelSelectHandles {
         root,
-        resume_button,
-        restart_button,
-        main_menu_button,
-        quit_button,
+        level_buttons,
+        back_button,
     }
 }
 
 pub fn handle_input(boomer_world: &mut BoomerWorld, world: &mut World) {
-    if !matches!(boomer_world.resources.screen.current, Screen::Paused) {
+    if !matches!(boomer_world.resources.screen.current, Screen::LevelSelect) {
         return;
     }
-    let resume = boomer_world.resources.ui_handles.pause.resume_button;
-    let restart = boomer_world.resources.ui_handles.pause.restart_button;
-    let main_menu = boomer_world.resources.ui_handles.pause.main_menu_button;
-    let quit = boomer_world.resources.ui_handles.pause.quit_button;
-    let mut clicked_resume = false;
-    let mut clicked_restart = false;
-    let mut clicked_main_menu = false;
-    let mut clicked_quit = false;
+    let back = boomer_world.resources.ui_handles.level_select.back_button;
+    let mut selected = None;
+    let mut clicked_back = false;
     for entity in ui_button_clicks(world) {
-        if entity == resume {
-            clicked_resume = true;
-        } else if entity == restart {
-            clicked_restart = true;
-        } else if entity == main_menu {
-            clicked_main_menu = true;
-        } else if entity == quit {
-            clicked_quit = true;
+        if entity == back {
+            clicked_back = true;
+        } else if let Some(index) = boomer_world
+            .resources
+            .ui_handles
+            .level_select
+            .level_buttons
+            .iter()
+            .position(|button| *button == entity)
+        {
+            selected = Some(index);
         }
     }
-    if clicked_resume {
+    if let Some(index) = selected {
+        game::start_at(boomer_world, world, index);
         lifecycle::enter(boomer_world, world, Screen::InGame);
-    } else if clicked_restart {
-        game::start_at(boomer_world, world, 0);
-        lifecycle::enter(boomer_world, world, Screen::InGame);
-    } else if clicked_main_menu {
-        game::start_at(boomer_world, world, 0);
+    } else if clicked_back {
         lifecycle::enter(boomer_world, world, Screen::Title);
-    } else if clicked_quit {
-        world.resources.window.should_exit = true;
     }
 }

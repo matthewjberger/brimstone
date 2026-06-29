@@ -26,11 +26,16 @@ pub fn handle_global(boomer_world: &mut BoomerWorld, world: &mut World) {
                 world.resources.window.should_exit = true;
             }
         }
+        Screen::LevelSelect => {
+            if escape {
+                lifecycle::enter(boomer_world, world, Screen::Title);
+            }
+        }
         Screen::InGame => {
             if escape || start {
                 lifecycle::enter(boomer_world, world, Screen::Paused);
             } else if restart || (confirm && !matches!(phase, Phase::Playing)) {
-                game::reset(boomer_world, world);
+                game::start_at(boomer_world, world, 0);
             }
         }
         Screen::Paused => {

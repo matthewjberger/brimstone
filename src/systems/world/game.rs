@@ -11,19 +11,14 @@ const DEATH_SHAKE: f32 = 1.2;
 const EXIT_RADIUS: f32 = 2.8;
 const BANNER_TIME: f32 = 2.4;
 
-pub fn start(boomer_world: &mut BoomerWorld, world: &mut World) {
+pub fn start_at(boomer_world: &mut BoomerWorld, world: &mut World, absolute_index: usize) {
     if !boomer_world.resources.game.seeded {
         let uptime = world.resources.window.timing.uptime_milliseconds;
         boomer_world.resources.game.random_state = 0x9e37_79b9_7f4a_7c15 ^ (uptime | 1);
         boomer_world.resources.game.seeded = true;
     }
     reset_core(boomer_world);
-    load_level(boomer_world, world, 0);
-}
-
-pub fn reset(boomer_world: &mut BoomerWorld, world: &mut World) {
-    reset_core(boomer_world);
-    load_level(boomer_world, world, 0);
+    load_level(boomer_world, world, absolute_index);
 }
 
 pub fn load_level(boomer_world: &mut BoomerWorld, world: &mut World, absolute_index: usize) {

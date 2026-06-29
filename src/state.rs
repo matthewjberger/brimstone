@@ -17,6 +17,7 @@ impl State for Boomer {
     fn run_systems(&mut self, world: &mut World) {
         systems::input::handle_global(&mut self.boomer_world, world);
         systems::screens::title::handle_input(&mut self.boomer_world, world);
+        systems::screens::level_select::handle_input(&mut self.boomer_world, world);
         systems::screens::pause::handle_input(&mut self.boomer_world, world);
 
         if matches!(self.boomer_world.resources.screen.current, Screen::InGame) {

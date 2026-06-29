@@ -15,6 +15,7 @@ pub fn build(tree: &mut UiTreeBuilder) -> TitleHandles {
         .entity();
 
     let mut play_button = Entity::default();
+    let mut level_select_button = Entity::default();
     let mut quit_button = Entity::default();
 
     tree.in_parent(root, |tree| {
@@ -51,13 +52,14 @@ pub fn build(tree: &mut UiTreeBuilder) -> TitleHandles {
             .add_node()
             .window(
                 Rl(vec2(50.0, 100.0)) + Ab(vec2(0.0, -96.0)),
-                Ab(vec2(MENU_BUTTON_SIZE.x, 112.0)),
+                Ab(vec2(MENU_BUTTON_SIZE.x, 176.0)),
                 Anchor::BottomCenter,
             )
             .flow(FlowDirection::Vertical, 8.0, 8.0)
             .entity();
         tree.in_parent(menu_column, |tree| {
             play_button = menu_button::build(tree, "PLAY");
+            level_select_button = menu_button::build(tree, "SELECT LEVEL");
             quit_button = menu_button::build(tree, "QUIT");
         });
 
@@ -79,6 +81,7 @@ pub fn build(tree: &mut UiTreeBuilder) -> TitleHandles {
     TitleHandles {
         root,
         play_button,
+        level_select_button,
         quit_button,
     }
 }
@@ -88,20 +91,25 @@ pub fn handle_input(boomer_world: &mut BoomerWorld, world: &mut World) {
         return;
     }
     let play = boomer_world.resources.ui_handles.title.play_button;
+    let level_select = boomer_world.resources.ui_handles.title.level_select_button;
     let quit = boomer_world.resources.ui_handles.title.quit_button;
     let mut clicked_play = false;
+    let mut clicked_level_select = false;
     let mut clicked_quit = false;
     for entity in ui_button_clicks(world) {
         if entity == play {
             clicked_play = true;
+        } else if entity == level_select {
+            clicked_level_select = true;
         } else if entity == quit {
             clicked_quit = true;
         }
     }
     if clicked_play {
         lifecycle::enter(boomer_world, world, Screen::InGame);
-    }
-    if clicked_quit {
+    } else if clicked_level_select {
+        lifecycle::enter(boomer_world, world, Screen::LevelSelect);
+    } else if clicked_quit {
         world.resources.window.should_exit = true;
     }
 }

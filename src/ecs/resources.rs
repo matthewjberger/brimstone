@@ -7,6 +7,7 @@ use nightshade::prelude::Entity;
 pub enum Screen {
     #[default]
     Title,
+    LevelSelect,
     InGame,
     Paused,
 }
@@ -144,7 +145,15 @@ pub struct AudioPool {
 pub struct TitleHandles {
     pub root: Entity,
     pub play_button: Entity,
+    pub level_select_button: Entity,
     pub quit_button: Entity,
+}
+
+#[derive(Default)]
+pub struct LevelSelectHandles {
+    pub root: Entity,
+    pub level_buttons: Vec<Entity>,
+    pub back_button: Entity,
 }
 
 #[derive(Default)]
@@ -175,6 +184,7 @@ pub struct HudHandles {
 #[derive(Default)]
 pub struct UiHandles {
     pub title: TitleHandles,
+    pub level_select: LevelSelectHandles,
     pub pause: PauseHandles,
     pub hud: HudHandles,
 }
