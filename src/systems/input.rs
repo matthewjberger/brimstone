@@ -40,16 +40,8 @@ pub fn handle_global(boomer_world: &mut BoomerWorld, world: &mut World) {
             if escape || start {
                 lifecycle::enter(boomer_world, world, Screen::Paused);
             } else if restart || (confirm && !matches!(phase, Phase::Playing)) {
-                if boomer_world.resources.level.story {
-                    let mission = boomer_world.resources.story.mission;
-                    game::start_mission(boomer_world, world, mission);
-                    lifecycle::enter(boomer_world, world, Screen::InGame);
-                } else if boomer_world.resources.level.custom {
-                    game::start_custom(boomer_world, world);
-                    lifecycle::enter(boomer_world, world, Screen::InGame);
-                } else {
-                    game::start_at(boomer_world, world, 0);
-                }
+                game::restart_current(boomer_world, world);
+                lifecycle::enter(boomer_world, world, Screen::InGame);
             }
         }
         Screen::Paused => {

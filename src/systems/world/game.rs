@@ -180,6 +180,19 @@ pub fn start_mission(boomer_world: &mut BoomerWorld, world: &mut World, index: u
     }
 }
 
+/// Restart whatever the player is currently in: the same story mission, the
+/// same custom level, or arcade from the start.
+pub fn restart_current(boomer_world: &mut BoomerWorld, world: &mut World) {
+    if boomer_world.resources.level.story {
+        let mission = boomer_world.resources.story.mission;
+        start_mission(boomer_world, world, mission);
+    } else if boomer_world.resources.level.custom {
+        start_custom(boomer_world, world);
+    } else {
+        start_at(boomer_world, world, 0);
+    }
+}
+
 pub fn award(boomer_world: &mut BoomerWorld, base: u32) {
     let before = combo_multiplier(boomer_world.resources.game.combo);
     {
@@ -216,6 +229,7 @@ pub fn damage_player(boomer_world: &mut BoomerWorld, world: &mut World, amount: 
     if boomer_world.resources.player.iframes > 0.0 {
         return;
     }
+    let amount = amount * boomer_world.resources.settings.difficulty.damage_taken();
     boomer_world.resources.stats.health -= amount;
     boomer_world.resources.player.iframes = POST_HIT_IFRAMES;
     boomer_world.resources.game.damage_flash = tuning::DAMAGE_FLASH_TIME;

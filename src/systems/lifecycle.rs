@@ -8,6 +8,9 @@ pub fn initialize(boomer_world: &mut BoomerWorld, world: &mut World) {
     world.resources.user_interface.enabled = true;
     world.resources.retained_ui.enabled = true;
 
+    boomer_world.resources.settings.difficulty = crate::settings::load();
+    boomer_world.resources.settings.loaded = true;
+
     let settings = &mut world.resources.render_settings;
     settings.bloom_enabled = true;
     settings.bloom_intensity = 0.35;

@@ -53,6 +53,63 @@ pub struct ScreenState {
     pub current: Screen,
 }
 
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+pub enum Difficulty {
+    Easy,
+    #[default]
+    Normal,
+    Hard,
+}
+
+impl Difficulty {
+    pub fn label(self) -> &'static str {
+        match self {
+            Difficulty::Easy => "EASY",
+            Difficulty::Normal => "NORMAL",
+            Difficulty::Hard => "HARD",
+        }
+    }
+
+    /// Multiplier on damage the player takes.
+    pub fn damage_taken(self) -> f32 {
+        match self {
+            Difficulty::Easy => 0.55,
+            Difficulty::Normal => 1.0,
+            Difficulty::Hard => 1.6,
+        }
+    }
+
+    pub fn next(self) -> Difficulty {
+        match self {
+            Difficulty::Easy => Difficulty::Normal,
+            Difficulty::Normal => Difficulty::Hard,
+            Difficulty::Hard => Difficulty::Easy,
+        }
+    }
+
+    pub fn code(self) -> u8 {
+        match self {
+            Difficulty::Easy => 0,
+            Difficulty::Normal => 1,
+            Difficulty::Hard => 2,
+        }
+    }
+
+    pub fn from_code(code: u8) -> Difficulty {
+        match code {
+            0 => Difficulty::Easy,
+            2 => Difficulty::Hard,
+            _ => Difficulty::Normal,
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct Settings {
+    pub difficulty: Difficulty,
+    pub loaded: bool,
+}
+
 #[derive(Default)]
 pub struct PlayerState {
     pub player_entity: Option<Entity>,
@@ -283,11 +340,13 @@ pub struct MissionSelectHandles {
     pub back_button: Entity,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct PauseHandles {
     pub root: Entity,
     pub resume_button: Entity,
     pub restart_button: Entity,
+    pub difficulty_button: Entity,
+    pub difficulty_label: Entity,
     pub main_menu_button: Entity,
     pub quit_button: Entity,
 }

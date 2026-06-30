@@ -16,6 +16,7 @@ freecs::ecs! {
     Events {}
     Resources {
         screen: ScreenState,
+        settings: Settings,
         player: PlayerState,
         weapon: WeaponState,
         stats: PlayerStats,

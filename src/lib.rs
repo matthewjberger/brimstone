@@ -9,6 +9,7 @@ mod art;
 mod campaign;
 mod content;
 mod ecs;
+mod settings;
 mod state;
 mod systems;
 mod theme;
