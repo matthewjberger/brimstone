@@ -151,6 +151,7 @@ pub fn movement(boomer_world: &mut BoomerWorld, world: &mut World) {
         velocity.z = horizontal.z;
     }
 
+    let prev_wall_side = boomer_world.resources.player.wall_run_side;
     let wall_jumped = apply_wallrun(
         boomer_world,
         world,
@@ -166,6 +167,9 @@ pub fn movement(boomer_world: &mut BoomerWorld, world: &mut World) {
             delta,
         },
     );
+    if prev_wall_side == 0 && boomer_world.resources.player.wall_run_side != 0 {
+        audio::play(boomer_world, world, audio::DASH, 0.5);
+    }
 
     if grounded && jump && !wall_jumped {
         velocity.y = tuning::JUMP_IMPULSE;
@@ -382,19 +386,22 @@ pub fn apply_camera_feel(boomer_world: &mut BoomerWorld, world: &mut World) {
     let cam_kick = game.cam_kick;
     let fov_pop = game.fov_pop;
 
-    let target_tilt = if active {
-        match wall_side {
+    // Only evolve and re-apply the camera roll while the sim is live, so the
+    // roll baked into the rotation always equals what `pre_look` removes.
+    let tilt = if active {
+        let target_tilt = match wall_side {
             1 => tuning::WALL_RUN_CAMERA_TILT,
             -1 => -tuning::WALL_RUN_CAMERA_TILT,
             _ => 0.0,
-        }
+        };
+        let tilt_lerp = (delta * tuning::WALL_RUN_TILT_LERP).clamp(0.0, 1.0);
+        let current_tilt = boomer_world.resources.player.wall_run_tilt;
+        let next = current_tilt + (target_tilt - current_tilt) * tilt_lerp;
+        boomer_world.resources.player.wall_run_tilt = next;
+        next
     } else {
-        0.0
+        boomer_world.resources.player.wall_run_tilt
     };
-    let tilt_lerp = (delta * tuning::WALL_RUN_TILT_LERP).clamp(0.0, 1.0);
-    let current_tilt = boomer_world.resources.player.wall_run_tilt;
-    let tilt = current_tilt + (target_tilt - current_tilt) * tilt_lerp;
-    boomer_world.resources.player.wall_run_tilt = tilt;
     let wall_fov = if active && wall_side != 0 {
         tuning::WALL_RUN_FOV_POP
     } else {

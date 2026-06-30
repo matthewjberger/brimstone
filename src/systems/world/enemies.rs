@@ -176,6 +176,7 @@ pub fn spawn(
     if boss {
         boomer_world.resources.game.boss_entity = Some(game_entity);
         boomer_world.resources.game.boss_max_health = health;
+        audio::play(boomer_world, world, audio::BOSS, 0.9);
     }
     boomer_world.set_enemy(
         game_entity,

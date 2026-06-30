@@ -339,6 +339,7 @@ fn advance_wave(boomer_world: &mut BoomerWorld, world: &mut World) {
     {
         level::open_exit(boomer_world, world);
         boomer_world.resources.level.banner = BANNER_TIME;
+        audio::play(boomer_world, world, audio::CLEAR, 0.7);
     }
 }
 
@@ -350,7 +351,7 @@ fn check_keycard(boomer_world: &mut BoomerWorld, world: &mut World) {
     {
         level::open_exit(boomer_world, world);
         boomer_world.resources.level.banner = BANNER_TIME;
-        audio::play(boomer_world, world, audio::PICKUP, 0.9);
+        audio::play(boomer_world, world, audio::CLEAR, 0.8);
     }
 }
 

@@ -23,6 +23,8 @@ pub const PICKUP: &[&str] = &["sfx_coin00", "sfx_coin01", "sfx_coin02", "sfx_coi
 pub const FIREBALL: &[&str] = &["sfx_fire00", "sfx_fire01", "sfx_fire02"];
 pub const DASH: &[&str] = &["sfx_push00", "sfx_push01", "sfx_push02"];
 pub const PAD: &[&str] = &["sfx_power00", "sfx_power02", "sfx_power03"];
+pub const BOSS: &[&str] = &["sfx_alarm00", "sfx_alarm01"];
+pub const CLEAR: &[&str] = &["sfx_bell00", "sfx_bell01", "sfx_bell02"];
 
 const CLIPS: &[(&str, &[u8])] = &[
     ("sfx_gun00", include_bytes!("../../../assets/sfx/gun00.wav")),
@@ -159,6 +161,26 @@ const CLIPS: &[(&str, &[u8])] = &[
     (
         "sfx_power03",
         include_bytes!("../../../assets/sfx/power03.wav"),
+    ),
+    (
+        "sfx_alarm00",
+        include_bytes!("../../../assets/sfx/alarm00.wav"),
+    ),
+    (
+        "sfx_alarm01",
+        include_bytes!("../../../assets/sfx/alarm01.wav"),
+    ),
+    (
+        "sfx_bell00",
+        include_bytes!("../../../assets/sfx/bell00.wav"),
+    ),
+    (
+        "sfx_bell01",
+        include_bytes!("../../../assets/sfx/bell01.wav"),
+    ),
+    (
+        "sfx_bell02",
+        include_bytes!("../../../assets/sfx/bell02.wav"),
     ),
 ];
 
