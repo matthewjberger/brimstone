@@ -5,6 +5,7 @@ use crate::systems::world::{audio, billboard, fx, game, pickups, player, project
 use crate::tuning;
 use nalgebra_glm::{Vec3, vec3};
 use nightshade::ecs::navmesh::find_path_with_algorithm;
+use nightshade::ecs::navmesh::funnel::{simplify_path, smooth_path};
 use nightshade::ecs::physics::resources::physics_world_cast_ray;
 use nightshade::prelude::*;
 
@@ -714,7 +715,12 @@ fn nav_direction(world: &World, from: Vec3, to: Vec3) -> Option<Vec3> {
     if !matches!(result.status, PathStatus::Found | PathStatus::PartialPath) {
         return None;
     }
-    let next = result.waypoints.iter().skip(1).find(|waypoint| {
+    // Funnel the triangle corridor into a straight string-pulled path. Steering at
+    // raw triangle centres makes enemies crab sideways and stall near corners; the
+    // smoothed path heads straight at the corner to round, like the engine's own
+    // agent mover does.
+    let path = simplify_path(&smooth_path(navmesh, &result.triangle_path, from, to), 1.0);
+    let next = path.iter().skip(1).find(|waypoint| {
         let mut offset = **waypoint - from;
         offset.y = 0.0;
         offset.norm() > tuning::NAV_WAYPOINT_MIN

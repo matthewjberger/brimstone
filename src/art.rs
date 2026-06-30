@@ -58,18 +58,18 @@ const GARGOYLE: &[&str] = &[
     "...dd.dd...",
 ];
 
-// A floating eye with a heavy scowling brow and a hot red pupil, so it reads as
-// an angry sentinel rather than a plain teal orb.
+// A floating eye: teal orb, scowling brow, a glowing amber iris and a black slit
+// pupil. Deliberately no white-on-red, so it reads as a demon eye and not a medkit.
 const SENTINEL: &[&str] = &[
     "..bbbbbb...",
     ".bbbbbbbbb.",
-    "ottttttttto",
-    "otttwwwttto",
-    "ottwwrwwtto",
-    "otwwrrrwwto",
-    "ottwwrwwtto",
-    "otttwwwttto",
-    "ottttttttto",
+    "ottiiiiitto",
+    "otiiiiiiito",
+    "otiiipiiito",
+    "otiiipiiito",
+    "otiiipiiito",
+    "otiiiiiiito",
+    "ottiiiiitto",
     ".ottttttto.",
     "..ooooooo..",
 ];
@@ -201,10 +201,10 @@ pub fn gargoyle_hurt() -> Sprite {
 fn sentinel_color(symbol: char, hurt: bool) -> [u8; 4] {
     let base = match symbol {
         'o' => [10, 28, 32, 255],
-        'b' => [8, 16, 20, 255],
+        'b' => [6, 14, 16, 255],
         't' => [40, 150, 160, 255],
-        'w' => [200, 255, 255, 255],
-        'r' => [255, 70, 40, 255],
+        'i' => [255, 150, 30, 255],
+        'p' => [10, 6, 4, 255],
         _ => [0, 0, 0, 0],
     };
     brighten(base, hurt)
