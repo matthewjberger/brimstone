@@ -260,7 +260,9 @@ const L2_PADS: &[(f32, f32)] = &[(8.0, 8.0), (-8.0, -8.0)];
 // the ground at the north edge.
 // ============================================================================
 const L3_BLOCKS: &[BlockSpec] = &[
-    (0.0, 5.0, 0.0, 4.0, 10.0, 4.0, Monument), // tower
+    (0.0, 2.0, 0.0, 5.0, 4.0, 5.0, Monument), // spire base, top 4
+    (0.0, 6.0, 0.0, 3.0, 4.0, 3.0, Monument), // spire shaft, top 8
+    (0.0, 9.5, 0.0, 1.8, 3.0, 1.8, Core),     // glowing crown, top 11
     (6.5, 0.75, 0.0, 4.0, 1.5, 4.0, Platform), // top 1.5
     (-6.5, 1.5, 0.0, 4.0, 3.0, 4.0, Platform), // top 3.0
     (0.0, 2.25, 6.5, 4.0, 4.5, 4.0, Platform), // top 4.5
