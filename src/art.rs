@@ -406,3 +406,45 @@ pub fn fireball() -> Sprite {
 pub fn rocket() -> Sprite {
     radial(96, [236, 252, 255], [70, 150, 255])
 }
+
+pub fn keycard() -> Sprite {
+    let size = 16 * SCALE;
+    let mut sprite = solid(size, size);
+    let outline = [18, 20, 12, 255];
+    let card = [230, 196, 40, 255];
+    let stripe = [40, 32, 12, 255];
+    let chip = [250, 240, 180, 255];
+    fill_rect(
+        &mut sprite,
+        3 * SCALE,
+        5 * SCALE,
+        13 * SCALE,
+        12 * SCALE,
+        outline,
+    );
+    fill_rect(
+        &mut sprite,
+        4 * SCALE,
+        6 * SCALE,
+        12 * SCALE,
+        11 * SCALE,
+        card,
+    );
+    fill_rect(
+        &mut sprite,
+        4 * SCALE,
+        7 * SCALE,
+        12 * SCALE,
+        8 * SCALE,
+        stripe,
+    );
+    fill_rect(
+        &mut sprite,
+        5 * SCALE,
+        9 * SCALE,
+        7 * SCALE,
+        10 * SCALE,
+        chip,
+    );
+    sprite
+}

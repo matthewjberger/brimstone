@@ -20,6 +20,7 @@ pub const MAT_FIREBALL: &str = "boom_mat_fireball";
 pub const MAT_ROCKET: &str = "boom_mat_rocket";
 pub const MAT_MEDKIT: &str = "boom_mat_medkit";
 pub const MAT_AMMO: &str = "boom_mat_ammo";
+pub const MAT_KEYCARD: &str = "boom_mat_keycard";
 pub const MAT_EXIT: &str = "boom_mat_exit";
 pub const PAD_MATERIAL: &str = "boom_mat_pad";
 pub const MARKER_PLAYER: &str = "boom_mat_marker_player";
@@ -74,6 +75,7 @@ pub fn load(world: &mut World) {
     upload_sprite(world, "boom_rocket", art::rocket());
     upload_sprite(world, "boom_medkit", art::medkit());
     upload_sprite(world, "boom_ammo", art::ammo_box());
+    upload_sprite(world, "boom_keycard", art::keycard());
 
     register_material(world, MAT_FIREBALL, glow_material("boom_fireball"));
     register_material(
@@ -83,6 +85,11 @@ pub fn load(world: &mut World) {
     );
     register_material(world, MAT_MEDKIT, sprite_material("boom_medkit"));
     register_material(world, MAT_AMMO, sprite_material("boom_ammo"));
+    register_material(
+        world,
+        MAT_KEYCARD,
+        glow_material_tinted("boom_keycard", [1.0, 0.85, 0.2]),
+    );
     register_material(world, MAT_EXIT, beacon_material(vec3(0.3, 1.8, 0.7), 5.0));
     register_material(
         world,

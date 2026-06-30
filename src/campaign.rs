@@ -11,6 +11,8 @@ pub enum Objective {
     Reach,
     /// A warlord anchors the final wave; clear the floor to open the gate.
     Boss,
+    /// The gate is locked until you find and grab the keycard across the level.
+    Keycard,
 }
 
 impl Objective {
@@ -19,6 +21,7 @@ impl Objective {
             Objective::Exterminate => "EXTERMINATE THE HORDE",
             Objective::Reach => "REACH THE GATE",
             Objective::Boss => "KILL THE WARLORD",
+            Objective::Keycard => "RECOVER THE KEYCARD",
         }
     }
 }
@@ -28,6 +31,8 @@ pub struct Mission {
     pub level: usize,
     pub title: &'static str,
     pub objective: Objective,
+    /// World position of the keycard for `Keycard` missions; ignored otherwise.
+    pub key: [f32; 3],
     pub briefing: &'static str,
     pub debrief: &'static str,
 }
@@ -57,6 +62,7 @@ pub const CAMPAIGN: &[Mission] = &[
         level: 0,
         title: "DROP ZONE",
         objective: Objective::Exterminate,
+        key: [0.0, 0.0, 0.0],
         briefing: "You hit the hangar deck hard. The first wave is already swarming the beacons. Clear them out and find the way down.",
         debrief: "Hangar secured. The deck below is venting heat — the horde is thickest there.",
     },
@@ -64,20 +70,23 @@ pub const CAMPAIGN: &[Mission] = &[
         level: 1,
         title: "THE GAUNTLET",
         objective: Objective::Reach,
+        key: [0.0, 0.0, 0.0],
         briefing: "The corridor ahead is a kill-channel and the bulkhead won't hold. Don't stand and fight — run the gauntlet and slam the gate behind you.",
         debrief: "Gate sealed. Whatever was herding them is close now.",
     },
     Mission {
         level: 2,
         title: "THE SANCTUM",
-        objective: Objective::Exterminate,
-        briefing: "The casters nest in the colonnade, lobbing fire from the dark. Burn the sanctum down to the last of them.",
-        debrief: "The sanctum is ash. Ahead, the deck rises into an old monument hall.",
+        objective: Objective::Keycard,
+        key: [12.0, 0.0, -12.0],
+        briefing: "The gate out of the sanctum is sealed. The casters guard the keycard in the far corner of the colonnade — go take it, then get to the gate.",
+        debrief: "Keycard in hand, the sanctum falls behind you. The deck rises into an old monument hall.",
     },
     Mission {
         level: 4,
         title: "THE ZIGGURAT",
         objective: Objective::Boss,
+        key: [0.0, 0.0, 0.0],
         briefing: "A warlord holds the high ground atop the ziggurat, screaming the horde into a frenzy. Climb it. End it.",
         debrief: "The warlord is meat. But the spire beyond is crawling with wings.",
     },
@@ -85,6 +94,7 @@ pub const CAMPAIGN: &[Mission] = &[
         level: 6,
         title: "ASCENT",
         objective: Objective::Reach,
+        key: [0.0, 0.0, 0.0],
         briefing: "The gargoyles own the air around the spire. You can't win this one — you can only climb it. Reach the gate at the top.",
         debrief: "You break through the roost. Below you, the core chamber glows red.",
     },
@@ -92,6 +102,7 @@ pub const CAMPAIGN: &[Mission] = &[
         level: 3,
         title: "THE CRUCIBLE",
         objective: Objective::Boss,
+        key: [0.0, 0.0, 0.0],
         briefing: "This is the core. The overlord is down there, and everything it has left is between you and it. No exit until it's dead.",
         debrief: "Silence.",
     },

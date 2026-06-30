@@ -54,6 +54,7 @@ pub enum PickupKind {
     #[default]
     Health,
     Ammo,
+    Keycard,
 }
 
 #[derive(Default, Clone, Copy, Debug)]

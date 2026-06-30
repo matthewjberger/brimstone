@@ -19,6 +19,7 @@ pub fn build(tree: &mut UiTreeBuilder) -> HudHandles {
     let mut weapon_label = Entity::default();
     let mut ammo_rack = Entity::default();
     let mut wave_label = Entity::default();
+    let mut objective_label = Entity::default();
     let mut score_label = Entity::default();
     let mut combo_label = Entity::default();
     let mut crosshair = Entity::default();
@@ -131,6 +132,20 @@ pub fn build(tree: &mut UiTreeBuilder) -> HudHandles {
             .color_raw::<UiBase>(ACCENT)
             .entity();
 
+        objective_label = tree
+            .add_node()
+            .window(
+                Rl(vec2(0.0, 0.0)) + Ab(vec2(30.0, 52.0)),
+                Ab(vec2(420.0, 24.0)),
+                Anchor::TopLeft,
+            )
+            .with_text("", 18.0)
+            .text_left()
+            .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 1.5)
+            .with_visible(false)
+            .color_raw::<UiBase>(ACCENT_HOT)
+            .entity();
+
         crosshair = tree
             .add_node()
             .window(Rl(vec2(50.0, 50.0)), Ab(vec2(7.0, 7.0)), Anchor::Center)
@@ -165,6 +180,7 @@ pub fn build(tree: &mut UiTreeBuilder) -> HudHandles {
         weapon_label,
         ammo_rack,
         wave_label,
+        objective_label,
         score_label,
         combo_label,
         status_label,
@@ -218,6 +234,28 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
             level.wave_count
         ),
     );
+
+    let show_objective = playing && level.story;
+    ui_set_visible(world, hud.objective_label, show_objective);
+    if show_objective {
+        let text = if level.exit_active {
+            "REACH THE GATE"
+        } else {
+            match level.objective {
+                crate::campaign::Objective::Exterminate => "CLEAR THE HORDE",
+                crate::campaign::Objective::Reach => "REACH THE GATE",
+                crate::campaign::Objective::Boss => "KILL THE WARLORD",
+                crate::campaign::Objective::Keycard => {
+                    if game.has_key {
+                        "REACH THE GATE"
+                    } else {
+                        "FIND THE KEYCARD"
+                    }
+                }
+            }
+        };
+        ui_set_text(world, hud.objective_label, &format!("> {text}"));
+    }
 
     let score_lit = lerp(
         &WHITE,

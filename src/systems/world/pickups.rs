@@ -2,7 +2,7 @@ use crate::ecs::{
     BoomerWorld, ENGINE_ENTITY, EngineEntity, PICKUP, Pickup, PickupKind, WeaponState,
 };
 use crate::systems::common::next_random;
-use crate::systems::world::textures::{MAT_AMMO, MAT_MEDKIT};
+use crate::systems::world::textures::{MAT_AMMO, MAT_KEYCARD, MAT_MEDKIT};
 use crate::systems::world::{audio, billboard, fx, player};
 use crate::tuning;
 use nalgebra_glm::{Vec3, vec3};
@@ -44,13 +44,29 @@ pub fn maybe_drop(boomer_world: &mut BoomerWorld, world: &mut World, position: V
     }
 }
 
+/// Drop the mission keycard at a fixed spot for `Keycard` objectives.
+pub fn spawn_keycard(boomer_world: &mut BoomerWorld, world: &mut World, position: Vec3) {
+    spawn_pickup(
+        boomer_world,
+        world,
+        PickupKind::Keycard,
+        vec3(position.x, 0.0, position.z),
+    );
+}
+
 fn spawn_pickup(boomer_world: &mut BoomerWorld, world: &mut World, kind: PickupKind, ground: Vec3) {
     let material = match kind {
         PickupKind::Health => MAT_MEDKIT,
         PickupKind::Ammo => MAT_AMMO,
+        PickupKind::Keycard => MAT_KEYCARD,
+    };
+    let scale = if matches!(kind, PickupKind::Keycard) {
+        vec3(1.3, 1.3, 1.0)
+    } else {
+        vec3(0.9, 0.9, 1.0)
     };
     let position = vec3(ground.x, tuning::PICKUP_HOVER, ground.z);
-    let engine = billboard::spawn(world, material, position, vec3(0.9, 0.9, 1.0));
+    let engine = billboard::spawn(world, material, position, scale);
     let game_entity = boomer_world.spawn_entities(PICKUP | ENGINE_ENTITY, 1)[0];
     boomer_world.set_engine_entity(game_entity, EngineEntity(engine));
     boomer_world.set_pickup(
@@ -96,6 +112,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
                     || weapon.nails < tuning::NAIL_MAX
                     || weapon.rockets < tuning::ROCKET_MAX
             }
+            PickupKind::Keycard => !boomer_world.resources.game.has_key,
         };
 
         if close && wanted {
@@ -118,10 +135,14 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
                 weapon.nails = (weapon.nails + tuning::NAIL_PICKUP).min(tuning::NAIL_MAX);
                 weapon.rockets = (weapon.rockets + tuning::ROCKET_PICKUP).min(tuning::ROCKET_MAX);
             }
+            PickupKind::Keycard => {
+                boomer_world.resources.game.has_key = true;
+            }
         }
         let color = match kind {
             PickupKind::Health => vec3(0.4, 1.0, 0.5),
             PickupKind::Ammo => vec3(1.0, 0.85, 0.3),
+            PickupKind::Keycard => vec3(1.0, 0.85, 0.2),
         };
         fx::hit(boomer_world, world, position, color);
         audio::play(boomer_world, world, audio::PICKUP, 0.7);

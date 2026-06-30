@@ -204,6 +204,10 @@ pub fn start_mission(boomer_world: &mut BoomerWorld, world: &mut World, index: u
     if mission.objective == Objective::Reach {
         level::open_exit(boomer_world, world);
     }
+    if mission.objective == Objective::Keycard {
+        let key = vec3(mission.key[0], mission.key[1], mission.key[2]);
+        pickups::spawn_keycard(boomer_world, world, key);
+    }
 }
 
 pub fn award(boomer_world: &mut BoomerWorld, base: u32) {
@@ -302,6 +306,8 @@ pub fn tick(boomer_world: &mut BoomerWorld, world: &mut World) {
         advance_wave(boomer_world, world);
     }
 
+    check_keycard(boomer_world, world);
+
     if boomer_world.resources.level.exit_active {
         let player_position = player::position(boomer_world, world);
         let mut offset = player_position - boomer_world.resources.level.exit_position;
@@ -328,9 +334,23 @@ fn advance_wave(boomer_world: &mut BoomerWorld, world: &mut World) {
         boomer_world.resources.game.spawn_timer = 0.6;
         boomer_world.resources.level.wave += 1;
         boomer_world.resources.level.banner = BANNER_TIME;
-    } else if !boomer_world.resources.level.exit_active {
+    } else if !boomer_world.resources.level.exit_active
+        && !matches!(boomer_world.resources.level.objective, Objective::Keycard)
+    {
         level::open_exit(boomer_world, world);
         boomer_world.resources.level.banner = BANNER_TIME;
+    }
+}
+
+/// Unlock the gate the moment the keycard is recovered.
+fn check_keycard(boomer_world: &mut BoomerWorld, world: &mut World) {
+    if matches!(boomer_world.resources.level.objective, Objective::Keycard)
+        && boomer_world.resources.game.has_key
+        && !boomer_world.resources.level.exit_active
+    {
+        level::open_exit(boomer_world, world);
+        boomer_world.resources.level.banner = BANNER_TIME;
+        audio::play(boomer_world, world, audio::PICKUP, 0.9);
     }
 }
 

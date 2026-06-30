@@ -174,6 +174,8 @@ pub struct GameState {
     /// Seconds since the last kill; feeds the anti-camping pressure build-up.
     pub since_kill: f32,
     pub pressure: f32,
+    /// Whether the keycard has been recovered this mission (Keycard objective).
+    pub has_key: bool,
     pub random_state: u64,
     pub seeded: bool,
 }
@@ -281,6 +283,7 @@ pub struct HudHandles {
     pub weapon_label: Entity,
     pub ammo_rack: Entity,
     pub wave_label: Entity,
+    pub objective_label: Entity,
     pub score_label: Entity,
     pub combo_label: Entity,
     pub status_label: Entity,
