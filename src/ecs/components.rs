@@ -31,6 +31,8 @@ pub struct Enemy {
     pub kind: EnemyKind,
     /// Stronger, larger, brighter variant introduced in later cycles.
     pub elite: bool,
+    /// The mission boss (the warlord): far larger, far tankier, hits harder.
+    pub boss: bool,
     pub position: Vec3,
     /// Knockback / impulse velocity, decays each frame.
     pub velocity: Vec3,

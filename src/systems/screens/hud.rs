@@ -22,6 +22,7 @@ pub fn build(tree: &mut UiTreeBuilder) -> HudHandles {
     let mut objective_label = Entity::default();
     let mut score_label = Entity::default();
     let mut combo_label = Entity::default();
+    let mut boss_bar = Entity::default();
     let mut crosshair = Entity::default();
     let mut status_label = Entity::default();
     let mut hint_label = Entity::default();
@@ -146,6 +147,20 @@ pub fn build(tree: &mut UiTreeBuilder) -> HudHandles {
             .color_raw::<UiBase>(ACCENT_HOT)
             .entity();
 
+        boss_bar = tree
+            .add_node()
+            .window(
+                Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 70.0)),
+                Ab(vec2(680.0, 28.0)),
+                Anchor::TopCenter,
+            )
+            .with_text("", 22.0)
+            .text_center()
+            .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 1.5)
+            .with_visible(false)
+            .color_raw::<UiBase>(HEALTH)
+            .entity();
+
         crosshair = tree
             .add_node()
             .window(Rl(vec2(50.0, 50.0)), Ab(vec2(7.0, 7.0)), Anchor::Center)
@@ -183,6 +198,7 @@ pub fn build(tree: &mut UiTreeBuilder) -> HudHandles {
         objective_label,
         score_label,
         combo_label,
+        boss_bar,
         status_label,
         hint_label,
         crosshair,
@@ -272,6 +288,22 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
             hud.combo_label,
             &format!("x{}  {} KILLS", combo_multiplier(game.combo), game.combo),
         );
+    }
+
+    let boss_health = boomer_world
+        .resources
+        .game
+        .boss_entity
+        .and_then(|entity| boomer_world.get_enemy(entity))
+        .map(|enemy| enemy.health);
+    let show_boss = playing && boss_health.is_some();
+    ui_set_visible(world, hud.boss_bar, show_boss);
+    if let Some(health) = boss_health {
+        let max = boomer_world.resources.game.boss_max_health.max(1.0);
+        let fraction = (health / max).clamp(0.0, 1.0);
+        let filled = (fraction * 24.0).round() as usize;
+        let bar: String = "|".repeat(filled) + &".".repeat(24 - filled);
+        ui_set_text(world, hud.boss_bar, &format!("WARLORD  [{bar}]"));
     }
 
     ui_set_visible(world, hud.crosshair, playing);

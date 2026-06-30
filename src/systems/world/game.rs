@@ -183,9 +183,9 @@ pub fn start_mission(boomer_world: &mut BoomerWorld, world: &mut World, index: u
     );
     if mission.objective == Objective::Boss {
         if let Some(last) = waves.last_mut() {
-            last.push((EnemyKind::Brute, true));
+            last.push((EnemyKind::Brute, true, true));
         } else {
-            waves.push(vec![(EnemyKind::Brute, true)]);
+            waves.push(vec![(EnemyKind::Brute, true, true)]);
         }
     }
     let first = if waves.is_empty() {
@@ -296,9 +296,9 @@ pub fn tick(boomer_world: &mut BoomerWorld, world: &mut World) {
     if !boomer_world.resources.game.spawn_queue.is_empty() {
         boomer_world.resources.game.spawn_timer -= delta;
         if boomer_world.resources.game.spawn_timer <= 0.0 {
-            if let Some((kind, elite)) = boomer_world.resources.game.spawn_queue.pop() {
+            if let Some((kind, elite, boss)) = boomer_world.resources.game.spawn_queue.pop() {
                 let position = spawn_point(boomer_world);
-                enemies::spawn(boomer_world, world, kind, elite, position);
+                enemies::spawn(boomer_world, world, kind, elite, boss, position);
             }
             boomer_world.resources.game.spawn_timer = spawn_interval(boomer_world);
         }
@@ -375,7 +375,14 @@ fn apply_pressure(boomer_world: &mut BoomerWorld, world: &mut World, delta: f32)
         boomer_world.resources.game.pressure = 0.0;
         boomer_world.resources.game.shake += 0.3;
         let position = spawn_point(boomer_world);
-        enemies::spawn(boomer_world, world, EnemyKind::Swarmer, false, position);
+        enemies::spawn(
+            boomer_world,
+            world,
+            EnemyKind::Swarmer,
+            false,
+            false,
+            position,
+        );
     }
 }
 
@@ -433,27 +440,27 @@ fn build_waves(
 
     for _ in 0..imps {
         let elite = next_random(&mut boomer_world.resources.game.random_state) < fraction;
-        waves[cursor % count].push((EnemyKind::Imp, elite));
+        waves[cursor % count].push((EnemyKind::Imp, elite, false));
         cursor += 1;
     }
     for _ in 0..swarmers {
-        waves[cursor % count].push((EnemyKind::Swarmer, false));
+        waves[cursor % count].push((EnemyKind::Swarmer, false, false));
         cursor += 1;
     }
     for _ in 0..casters {
         let elite = next_random(&mut boomer_world.resources.game.random_state) < fraction;
-        waves[cursor % count].push((EnemyKind::Caster, elite));
+        waves[cursor % count].push((EnemyKind::Caster, elite, false));
         cursor += 1;
     }
     for _ in 0..gargoyles {
         let elite = next_random(&mut boomer_world.resources.game.random_state) < fraction;
-        waves[cursor % count].push((EnemyKind::Gargoyle, elite));
+        waves[cursor % count].push((EnemyKind::Gargoyle, elite, false));
         cursor += 1;
     }
     let last = count - 1;
     for _ in 0..brutes {
         let elite = next_random(&mut boomer_world.resources.game.random_state) < fraction;
-        waves[last].push((EnemyKind::Brute, elite));
+        waves[last].push((EnemyKind::Brute, elite, false));
     }
     waves
 }

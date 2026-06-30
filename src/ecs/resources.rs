@@ -3,8 +3,9 @@ use crate::tuning;
 use nalgebra_glm::Vec3;
 use nightshade::prelude::Entity;
 
-/// A queued spawn: which enemy kind, and whether it is an elite variant.
-pub type SpawnEntry = (EnemyKind, bool);
+/// A queued spawn: which enemy kind, whether it is an elite variant, and
+/// whether it is the mission boss (the warlord).
+pub type SpawnEntry = (EnemyKind, bool, bool);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum Screen {
@@ -180,6 +181,9 @@ pub struct GameState {
     pub pressure: f32,
     /// Whether the keycard has been recovered this mission (Keycard objective).
     pub has_key: bool,
+    /// The living boss enemy (for the health bar), and its full health.
+    pub boss_entity: Option<Entity>,
+    pub boss_max_health: f32,
     pub random_state: u64,
     pub seeded: bool,
 }
@@ -297,6 +301,7 @@ pub struct HudHandles {
     pub objective_label: Entity,
     pub score_label: Entity,
     pub combo_label: Entity,
+    pub boss_bar: Entity,
     pub status_label: Entity,
     pub hint_label: Entity,
     pub crosshair: Entity,

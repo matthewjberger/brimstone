@@ -126,8 +126,14 @@ fn enemy_material(key: &str, elite: bool, hurt: bool, frame: usize) -> String {
     }
 }
 
-fn body_scale(s: &Stats, elite: bool) -> Vec3 {
-    let multiplier = if elite { tuning::ELITE_SCALE } else { 1.0 };
+fn body_scale(s: &Stats, elite: bool, boss: bool) -> Vec3 {
+    let mut multiplier = 1.0;
+    if elite {
+        multiplier *= tuning::ELITE_SCALE;
+    }
+    if boss {
+        multiplier *= tuning::BOSS_SCALE;
+    }
     vec3(s.width * multiplier, s.height * multiplier, 1.0)
 }
 
@@ -140,6 +146,7 @@ pub fn spawn(
     world: &mut World,
     kind: EnemyKind,
     elite: bool,
+    boss: bool,
     position: Vec3,
 ) {
     let s = stats(kind);
@@ -148,22 +155,34 @@ pub fn spawn(
         spawn_position.y = tuning::GARGOYLE_HOVER;
     }
     let idle_material = enemy_material(s.key, elite, false, 0);
-    let engine = billboard::spawn(world, &idle_material, spawn_position, body_scale(&s, elite));
+    let engine = billboard::spawn(
+        world,
+        &idle_material,
+        spawn_position,
+        body_scale(&s, elite, boss),
+    );
     let strafe_roll = random_range(&mut boomer_world.resources.game.random_state, 0.0, 1.0);
     let fire_jitter = random_range(&mut boomer_world.resources.game.random_state, 0.4, 1.0)
         * tuning::CASTER_FIRE_COOLDOWN;
-    let health = if elite {
-        s.health * tuning::ELITE_HEALTH_MULT
-    } else {
-        s.health
-    };
+    let mut health = s.health;
+    if elite {
+        health *= tuning::ELITE_HEALTH_MULT;
+    }
+    if boss {
+        health *= tuning::BOSS_HEALTH_MULT;
+    }
     let game_entity = boomer_world.spawn_entities(ENEMY | ENGINE_ENTITY, 1)[0];
     boomer_world.set_engine_entity(game_entity, EngineEntity(engine));
+    if boss {
+        boomer_world.resources.game.boss_entity = Some(game_entity);
+        boomer_world.resources.game.boss_max_health = health;
+    }
     boomer_world.set_enemy(
         game_entity,
         Enemy {
             kind,
             elite,
+            boss,
             position: spawn_position,
             velocity: Vec3::zeros(),
             health,
@@ -202,6 +221,7 @@ pub fn damage(
     }
     let kind = enemy.kind;
     let elite = enemy.elite;
+    let boss = enemy.boss;
     let s = stats(kind);
     let mut updated = *enemy;
     updated.health -= amount;
@@ -217,13 +237,14 @@ pub fn damage(
 
     fx::hit(boomer_world, world, point, s.color);
     if dead {
-        let count = match kind {
+        let base_count = match kind {
             EnemyKind::Swarmer => 60,
             EnemyKind::Imp => 90,
             EnemyKind::Caster => 110,
             EnemyKind::Gargoyle => 100,
             EnemyKind::Brute => 150,
         };
+        let count = if boss { 320 } else { base_count };
         fx::death(
             boomer_world,
             world,
@@ -231,13 +252,19 @@ pub fn damage(
             s.color,
             count,
         );
-        let score = if elite {
-            s.score * tuning::ELITE_SCORE_MULT
-        } else {
-            s.score
-        };
+        let mut score = s.score;
+        if elite {
+            score *= tuning::ELITE_SCORE_MULT;
+        }
+        if boss {
+            score *= tuning::BOSS_SCORE_MULT;
+        }
         game::award(boomer_world, score);
-        if elite || matches!(kind, EnemyKind::Brute) {
+        if boss {
+            boomer_world.resources.game.boss_entity = None;
+            boomer_world.resources.game.shake += 1.2;
+            boomer_world.resources.game.hitstop = boomer_world.resources.game.hitstop.max(0.12);
+        } else if elite || matches!(kind, EnemyKind::Brute) {
             boomer_world.resources.game.shake += 0.25;
             boomer_world.resources.game.hitstop = boomer_world.resources.game.hitstop.max(0.04);
         }
@@ -306,11 +333,13 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
                     enemy.attack_cooldown = s.attack_cooldown;
                     enemy.velocity += dir3 * s.lunge_speed;
                     if dist3 <= s.attack_range + s.lunge_reach {
-                        let multiplier = if enemy.elite {
-                            tuning::ELITE_DAMAGE_MULT
-                        } else {
-                            1.0
-                        };
+                        let mut multiplier = 1.0;
+                        if enemy.elite {
+                            multiplier *= tuning::ELITE_DAMAGE_MULT;
+                        }
+                        if enemy.boss {
+                            multiplier *= tuning::BOSS_DAMAGE_MULT;
+                        }
                         melee_damage += s.attack_damage * multiplier;
                     }
                 }
@@ -340,11 +369,13 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
                     enemy.attack_cooldown = s.attack_cooldown;
                     enemy.velocity += direction * s.lunge_speed;
                     if attack_distance <= s.attack_range + s.lunge_reach {
-                        let multiplier = if enemy.elite {
-                            tuning::ELITE_DAMAGE_MULT
-                        } else {
-                            1.0
-                        };
+                        let mut multiplier = 1.0;
+                        if enemy.elite {
+                            multiplier *= tuning::ELITE_DAMAGE_MULT;
+                        }
+                        if enemy.boss {
+                            multiplier *= tuning::BOSS_DAMAGE_MULT;
+                        }
                         melee_damage += s.attack_damage * multiplier;
                     }
                 }
@@ -410,7 +441,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
 
     for (game_entity, engine, enemy) in &snapshots {
         let s = stats(enemy.kind);
-        let base = body_scale(&s, enemy.elite);
+        let base = body_scale(&s, enemy.elite, enemy.boss);
         if enemy.state == EnemyState::Dying {
             let fraction = (enemy.death_timer / tuning::ENEMY_DEATH_TIME).max(0.0);
             set_scale(world, *engine, vec3(base.x, base.y * fraction, 1.0));

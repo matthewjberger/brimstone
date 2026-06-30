@@ -103,6 +103,12 @@ pub const ELITE_DAMAGE_MULT: f32 = 1.4;
 pub const ELITE_SCALE: f32 = 1.25;
 pub const ELITE_SCORE_MULT: u32 = 2;
 
+// Boss / warlord (a single climactic enemy in Boss missions)
+pub const BOSS_HEALTH_MULT: f32 = 7.0;
+pub const BOSS_DAMAGE_MULT: f32 = 1.8;
+pub const BOSS_SCALE: f32 = 1.7;
+pub const BOSS_SCORE_MULT: u32 = 8;
+
 // Imp
 pub const IMP_HEALTH: f32 = 30.0;
 pub const IMP_SPEED: f32 = 3.8;
