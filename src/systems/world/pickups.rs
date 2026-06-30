@@ -111,6 +111,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
                 weapon.shells < tuning::SHOTGUN_MAX
                     || weapon.nails < tuning::NAIL_MAX
                     || weapon.rockets < tuning::ROCKET_MAX
+                    || weapon.rails < tuning::RAIL_MAX
             }
             PickupKind::Keycard => !boomer_world.resources.game.has_key,
         };
@@ -134,6 +135,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
                 weapon.shells = (weapon.shells + tuning::SHOTGUN_PICKUP).min(tuning::SHOTGUN_MAX);
                 weapon.nails = (weapon.nails + tuning::NAIL_PICKUP).min(tuning::NAIL_MAX);
                 weapon.rockets = (weapon.rockets + tuning::ROCKET_PICKUP).min(tuning::ROCKET_MAX);
+                weapon.rails = (weapon.rails + tuning::RAIL_PICKUP).min(tuning::RAIL_MAX);
             }
             PickupKind::Keycard => {
                 boomer_world.resources.game.has_key = true;

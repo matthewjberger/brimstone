@@ -55,6 +55,17 @@ fn weapon_stats(kind: WeaponKind) -> WeaponStats {
             fov_pop: tuning::ROCKET_FOV_POP,
             tracer: vec4(0.4, 0.7, 1.0, 1.0),
         },
+        WeaponKind::Railgun => WeaponStats {
+            pellets: 1,
+            spread: 0.0,
+            damage: tuning::RAIL_DAMAGE,
+            cooldown: tuning::RAIL_COOLDOWN,
+            knockback: tuning::RAIL_KNOCKBACK,
+            shake: tuning::RAIL_SHAKE,
+            kick: tuning::RAIL_KICK,
+            fov_pop: tuning::RAIL_FOV_POP,
+            tracer: vec4(2.6, 1.2, 2.8, 1.0),
+        },
     }
 }
 
@@ -101,6 +112,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         WeaponKind::Shotgun => (audio::SHOTGUN, 0.9),
         WeaponKind::Nailgun => (audio::NAILGUN, 0.4),
         WeaponKind::Rocket => (audio::ROCKET, 0.85),
+        WeaponKind::Railgun => (audio::RAILGUN, 0.8),
     };
     audio::play(boomer_world, world, sound, sound_volume);
 
@@ -129,6 +141,52 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
 
     let player = boomer_world.resources.player.player_entity;
     let mut connected = false;
+
+    if matches!(kind, WeaponKind::Railgun) {
+        let direction = forward;
+        let wall_distance = physics_world_cast_ray(
+            &world.resources.physics,
+            origin,
+            direction,
+            tuning::WEAPON_RANGE,
+            player,
+        )
+        .map(|hit| hit.distance)
+        .unwrap_or(tuning::WEAPON_RANGE);
+
+        let mut hits: Vec<(Entity, Vec3)> = Vec::new();
+        for (game_entity, target) in &targets {
+            if let Some(distance) = ray_sphere(origin, direction, *target, tuning::ENEMY_HIT_RADIUS)
+                && distance < wall_distance
+                && distance < tuning::WEAPON_RANGE
+            {
+                hits.push((*game_entity, origin + direction * distance));
+            }
+        }
+
+        let end = origin + direction * wall_distance;
+        fx::tracer(boomer_world, world, muzzle, end, stats.tracer);
+        let hit_anything = !hits.is_empty();
+        for (game_entity, point) in hits {
+            enemies::damage(
+                boomer_world,
+                world,
+                game_entity,
+                stats.damage,
+                point,
+                direction * stats.knockback,
+            );
+        }
+        if hit_anything {
+            boomer_world.resources.weapon.hit_marker = 0.12;
+            boomer_world.resources.game.hitstop = boomer_world
+                .resources
+                .game
+                .hitstop
+                .max(tuning::RAIL_HITSTOP);
+        }
+        return;
+    }
 
     for pellet in 0..stats.pellets {
         let (offset_x, offset_y) = if stats.pellets > 1 {
@@ -223,17 +281,21 @@ fn switch_weapons(boomer_world: &mut BoomerWorld, world: &World) {
         boomer_world.resources.weapon.current = WeaponKind::Nailgun;
     } else if keyboard.just_pressed(KeyCode::Digit3) {
         boomer_world.resources.weapon.current = WeaponKind::Rocket;
+    } else if keyboard.just_pressed(KeyCode::Digit4) {
+        boomer_world.resources.weapon.current = WeaponKind::Railgun;
     } else if dpad_up {
         boomer_world.resources.weapon.current = match boomer_world.resources.weapon.current {
             WeaponKind::Shotgun => WeaponKind::Nailgun,
             WeaponKind::Nailgun => WeaponKind::Rocket,
-            WeaponKind::Rocket => WeaponKind::Shotgun,
+            WeaponKind::Rocket => WeaponKind::Railgun,
+            WeaponKind::Railgun => WeaponKind::Shotgun,
         };
     } else if dpad_down {
         boomer_world.resources.weapon.current = match boomer_world.resources.weapon.current {
-            WeaponKind::Shotgun => WeaponKind::Rocket,
+            WeaponKind::Shotgun => WeaponKind::Railgun,
             WeaponKind::Nailgun => WeaponKind::Shotgun,
             WeaponKind::Rocket => WeaponKind::Nailgun,
+            WeaponKind::Railgun => WeaponKind::Rocket,
         };
     }
 }

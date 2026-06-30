@@ -89,6 +89,18 @@ pub const ROCKET_PICKUP: u32 = 3;
 pub const ROCKET_SELF_DAMAGE: f32 = 12.0;
 pub const ROCKET_SELF_PUSH: f32 = 15.0;
 
+// Railgun (piercing hitscan beam — punches through a whole line of enemies)
+pub const RAIL_DAMAGE: f32 = 85.0;
+pub const RAIL_COOLDOWN: f32 = 1.1;
+pub const RAIL_KNOCKBACK: f32 = 14.0;
+pub const RAIL_SHAKE: f32 = 0.45;
+pub const RAIL_KICK: f32 = 0.5;
+pub const RAIL_FOV_POP: f32 = 7.0;
+pub const RAIL_HITSTOP: f32 = 0.05;
+pub const RAIL_START: u32 = 12;
+pub const RAIL_MAX: u32 = 40;
+pub const RAIL_PICKUP: u32 = 5;
+
 // Enemy shared
 pub const ENEMY_HIT_FLASH: f32 = 0.1;
 pub const ENEMY_DEATH_TIME: f32 = 0.32;

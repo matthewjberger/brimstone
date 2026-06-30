@@ -143,6 +143,7 @@ pub enum WeaponKind {
     Shotgun,
     Nailgun,
     Rocket,
+    Railgun,
 }
 
 impl WeaponKind {
@@ -151,6 +152,7 @@ impl WeaponKind {
             WeaponKind::Shotgun => "SHOTGUN",
             WeaponKind::Nailgun => "NAILGUN",
             WeaponKind::Rocket => "ROCKET",
+            WeaponKind::Railgun => "RAILGUN",
         }
     }
 }
@@ -162,6 +164,7 @@ pub struct WeaponState {
     pub shells: u32,
     pub nails: u32,
     pub rockets: u32,
+    pub rails: u32,
     pub cooldown: f32,
     /// Brief crosshair kick when a shot lands.
     pub hit_marker: f32,
@@ -173,6 +176,7 @@ impl WeaponState {
             WeaponKind::Shotgun => self.shells,
             WeaponKind::Nailgun => self.nails,
             WeaponKind::Rocket => self.rockets,
+            WeaponKind::Railgun => self.rails,
         }
     }
 
@@ -181,6 +185,7 @@ impl WeaponState {
             WeaponKind::Shotgun => &mut self.shells,
             WeaponKind::Nailgun => &mut self.nails,
             WeaponKind::Rocket => &mut self.rockets,
+            WeaponKind::Railgun => &mut self.rails,
         }
     }
 
@@ -189,6 +194,7 @@ impl WeaponState {
             WeaponKind::Shotgun => tuning::SHOTGUN_MAX,
             WeaponKind::Nailgun => tuning::NAIL_MAX,
             WeaponKind::Rocket => tuning::ROCKET_MAX,
+            WeaponKind::Railgun => tuning::RAIL_MAX,
         }
     }
 }
@@ -200,6 +206,7 @@ impl Default for WeaponState {
             shells: tuning::SHOTGUN_START,
             nails: tuning::NAIL_START,
             rockets: tuning::ROCKET_START,
+            rails: tuning::RAIL_START,
             cooldown: 0.0,
             hit_marker: 0.0,
         }

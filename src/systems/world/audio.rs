@@ -25,6 +25,7 @@ pub const DASH: &[&str] = &["sfx_push00", "sfx_push01", "sfx_push02"];
 pub const PAD: &[&str] = &["sfx_power00", "sfx_power02", "sfx_power03"];
 pub const BOSS: &[&str] = &["sfx_alarm00", "sfx_alarm01"];
 pub const CLEAR: &[&str] = &["sfx_bell00", "sfx_bell01", "sfx_bell02"];
+pub const RAILGUN: &[&str] = &["sfx_biri00", "sfx_biri01"];
 
 const CLIPS: &[(&str, &[u8])] = &[
     ("sfx_gun00", include_bytes!("../../../assets/sfx/gun00.wav")),
@@ -181,6 +182,14 @@ const CLIPS: &[(&str, &[u8])] = &[
     (
         "sfx_bell02",
         include_bytes!("../../../assets/sfx/bell02.wav"),
+    ),
+    (
+        "sfx_biri00",
+        include_bytes!("../../../assets/sfx/biri00.wav"),
+    ),
+    (
+        "sfx_biri01",
+        include_bytes!("../../../assets/sfx/biri01.wav"),
     ),
 ];
 
