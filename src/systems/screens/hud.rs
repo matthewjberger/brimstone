@@ -22,8 +22,10 @@ pub fn build(tree: &mut UiTreeBuilder) -> HudHandles {
     let mut objective_label = Entity::default();
     let mut score_label = Entity::default();
     let mut combo_label = Entity::default();
+    let mut boss_panel = Entity::default();
     let mut boss_bar = Entity::default();
     let mut crosshair = Entity::default();
+    let mut status_panel = Entity::default();
     let mut status_label = Entity::default();
     let mut hint_label = Entity::default();
     let mut damage_overlay = Entity::default();
@@ -44,122 +46,156 @@ pub fn build(tree: &mut UiTreeBuilder) -> HudHandles {
             .color_raw::<UiBase>(TRANSPARENT)
             .entity();
 
-        health_label = tree
-            .add_node()
-            .window(
-                Rl(vec2(0.0, 100.0)) + Ab(vec2(30.0, -54.0)),
-                Ab(vec2(360.0, 40.0)),
-                Anchor::BottomLeft,
-            )
-            .with_text("100", 40.0)
-            .text_left()
-            .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 2.0)
-            .color_raw::<UiBase>(HEALTH)
-            .entity();
+        // Health chip, bottom-left: dim caption over a bright value on a panel.
+        let health_chip = panel(
+            tree,
+            Rl(vec2(0.0, 100.0)) + Ab(vec2(24.0, -92.0)),
+            Ab(vec2(228.0, 68.0)),
+            Anchor::BottomLeft,
+            PANEL_BG_DEEP,
+            true,
+        );
+        tree.in_parent(health_chip, |tree| {
+            caption(tree, "HEALTH", Ab(vec2(16.0, 9.0)));
+            health_label = tree
+                .add_node()
+                .window(Ab(vec2(16.0, 26.0)), Ab(vec2(196.0, 34.0)), Anchor::TopLeft)
+                .with_text("100", 32.0)
+                .text_left()
+                .color_raw::<UiBase>(HEALTH)
+                .entity();
+        });
 
-        weapon_label = tree
-            .add_node()
-            .window(
-                Rl(vec2(100.0, 100.0)) + Ab(vec2(-30.0, -84.0)),
-                Ab(vec2(360.0, 26.0)),
-                Anchor::BottomRight,
-            )
-            .with_text("SHOTGUN", 20.0)
-            .text_right()
-            .color_raw::<UiBase>(ACCENT)
-            .entity();
+        // Ammo chip, bottom-right: weapon name, big count, and the weapon rack.
+        let ammo_chip = panel(
+            tree,
+            Rl(vec2(100.0, 100.0)) + Ab(vec2(-24.0, -92.0)),
+            Ab(vec2(360.0, 68.0)),
+            Anchor::BottomRight,
+            PANEL_BG_DEEP,
+            true,
+        );
+        tree.in_parent(ammo_chip, |tree| {
+            weapon_label = tree
+                .add_node()
+                .window(Ab(vec2(16.0, 9.0)), Ab(vec2(200.0, 16.0)), Anchor::TopLeft)
+                .with_text("SHOTGUN", 14.0)
+                .text_left()
+                .color_raw::<UiBase>(ACCENT)
+                .entity();
+            ammo_label = tree
+                .add_node()
+                .window(
+                    Rl(vec2(100.0, 0.0)) + Ab(vec2(-16.0, 5.0)),
+                    Ab(vec2(150.0, 34.0)),
+                    Anchor::TopRight,
+                )
+                .with_text("40", 30.0)
+                .text_right()
+                .color_raw::<UiBase>(AMMO)
+                .entity();
+            ammo_rack = tree
+                .add_node()
+                .window(Ab(vec2(16.0, 46.0)), Ab(vec2(328.0, 16.0)), Anchor::TopLeft)
+                .with_text("", 12.0)
+                .text_left()
+                .color_raw::<UiBase>(TEXT_DIM)
+                .entity();
+        });
 
-        ammo_label = tree
-            .add_node()
-            .window(
-                Rl(vec2(100.0, 100.0)) + Ab(vec2(-30.0, -54.0)),
-                Ab(vec2(360.0, 40.0)),
-                Anchor::BottomRight,
-            )
-            .with_text("40", 40.0)
-            .text_right()
-            .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 2.0)
-            .color_raw::<UiBase>(AMMO)
-            .entity();
+        // Score chip, top-center.
+        let score_chip = panel(
+            tree,
+            Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 16.0)),
+            Ab(vec2(220.0, 54.0)),
+            Anchor::TopCenter,
+            PANEL_BG_DEEP,
+            true,
+        );
+        tree.in_parent(score_chip, |tree| {
+            tree.add_node()
+                .window(
+                    Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 8.0)),
+                    Ab(vec2(200.0, 12.0)),
+                    Anchor::TopCenter,
+                )
+                .with_text("SCORE", 11.0)
+                .text_center()
+                .color_raw::<UiBase>(TEXT_DIM)
+                .entity();
+            score_label = tree
+                .add_node()
+                .window(
+                    Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 20.0)),
+                    Ab(vec2(210.0, 30.0)),
+                    Anchor::TopCenter,
+                )
+                .with_text("0", 28.0)
+                .text_center()
+                .color_raw::<UiBase>(WHITE)
+                .entity();
+        });
 
-        ammo_rack = tree
-            .add_node()
-            .window(
-                Rl(vec2(100.0, 100.0)) + Ab(vec2(-30.0, -22.0)),
-                Ab(vec2(420.0, 22.0)),
-                Anchor::BottomRight,
-            )
-            .with_text("", 18.0)
-            .text_right()
-            .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 1.5)
-            .color_raw::<UiBase>(TEXT_DIM)
-            .entity();
-
-        score_label = tree
-            .add_node()
-            .window(
-                Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 20.0)),
-                Ab(vec2(520.0, 40.0)),
-                Anchor::TopCenter,
-            )
-            .with_text("0", 34.0)
-            .text_center()
-            .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 1.5)
-            .color_raw::<UiBase>(WHITE)
-            .entity();
-
+        // Combo flourish floats just under the score chip.
         combo_label = tree
             .add_node()
             .window(
-                Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 60.0)),
+                Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 78.0)),
                 Ab(vec2(360.0, 28.0)),
                 Anchor::TopCenter,
             )
             .with_text("", 22.0)
             .text_center()
+            .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 2.0)
             .with_visible(false)
             .color_raw::<UiBase>(ACCENT_HOT)
             .entity();
 
-        wave_label = tree
-            .add_node()
-            .window(
-                Rl(vec2(0.0, 0.0)) + Ab(vec2(30.0, 24.0)),
-                Ab(vec2(280.0, 26.0)),
-                Anchor::TopLeft,
-            )
-            .with_text("WAVE 1", 22.0)
-            .text_left()
-            .color_raw::<UiBase>(ACCENT)
-            .entity();
+        // Wave + objective chip, top-left.
+        let info_chip = panel(
+            tree,
+            Ab(vec2(24.0, 20.0)),
+            Ab(vec2(300.0, 62.0)),
+            Anchor::TopLeft,
+            PANEL_BG_DEEP,
+            true,
+        );
+        tree.in_parent(info_chip, |tree| {
+            wave_label = tree
+                .add_node()
+                .window(Ab(vec2(14.0, 9.0)), Ab(vec2(272.0, 22.0)), Anchor::TopLeft)
+                .with_text("WAVE 1", 20.0)
+                .text_left()
+                .color_raw::<UiBase>(ACCENT)
+                .entity();
+            objective_label = tree
+                .add_node()
+                .window(Ab(vec2(14.0, 36.0)), Ab(vec2(272.0, 18.0)), Anchor::TopLeft)
+                .with_text("", 15.0)
+                .text_left()
+                .with_visible(false)
+                .color_raw::<UiBase>(ACCENT_HOT)
+                .entity();
+        });
 
-        objective_label = tree
-            .add_node()
-            .window(
-                Rl(vec2(0.0, 0.0)) + Ab(vec2(30.0, 52.0)),
-                Ab(vec2(420.0, 24.0)),
-                Anchor::TopLeft,
-            )
-            .with_text("", 18.0)
-            .text_left()
-            .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 1.5)
-            .with_visible(false)
-            .color_raw::<UiBase>(ACCENT_HOT)
-            .entity();
-
-        boss_bar = tree
-            .add_node()
-            .window(
-                Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 70.0)),
-                Ab(vec2(680.0, 28.0)),
-                Anchor::TopCenter,
-            )
-            .with_text("", 22.0)
-            .text_center()
-            .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 1.5)
-            .with_visible(false)
-            .color_raw::<UiBase>(HEALTH)
-            .entity();
+        // Boss bar, top-center, panel and bar hidden until a warlord is alive.
+        boss_panel = panel(
+            tree,
+            Rl(vec2(50.0, 0.0)) + Ab(vec2(0.0, 84.0)),
+            Ab(vec2(560.0, 34.0)),
+            Anchor::TopCenter,
+            PANEL_BG_DEEP,
+            false,
+        );
+        tree.in_parent(boss_panel, |tree| {
+            boss_bar = tree
+                .add_node()
+                .window(Rl(vec2(50.0, 50.0)), Ab(vec2(536.0, 24.0)), Anchor::Center)
+                .with_text("", 20.0)
+                .text_center()
+                .color_raw::<UiBase>(HEALTH)
+                .entity();
+        });
 
         crosshair = tree
             .add_node()
@@ -168,24 +204,33 @@ pub fn build(tree: &mut UiTreeBuilder) -> HudHandles {
             .color_raw::<UiBase>(CROSSHAIR)
             .entity();
 
-        status_label = tree
-            .add_node()
-            .window(Rl(vec2(50.0, 40.0)), Ab(vec2(780.0, 80.0)), Anchor::Center)
-            .with_text("", 60.0)
-            .text_center()
-            .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 2.5)
-            .with_visible(false)
-            .color_raw::<UiBase>(WHITE)
-            .entity();
-
-        hint_label = tree
-            .add_node()
-            .window(Rl(vec2(50.0, 53.0)), Ab(vec2(720.0, 32.0)), Anchor::Center)
-            .with_text("", 24.0)
-            .text_center()
-            .with_visible(false)
-            .color_raw::<UiBase>(TEXT_DIM)
-            .entity();
+        // Center banner (level intro / clear / death), on a deep panel so the
+        // big text reads cleanly over a busy scene. Hidden until needed.
+        status_panel = panel(
+            tree,
+            Rl(vec2(50.0, 42.0)),
+            Ab(vec2(760.0, 150.0)),
+            Anchor::Center,
+            BACKDROP,
+            false,
+        );
+        tree.in_parent(status_panel, |tree| {
+            status_label = tree
+                .add_node()
+                .window(Rl(vec2(50.0, 34.0)), Ab(vec2(736.0, 72.0)), Anchor::Center)
+                .with_text("", 54.0)
+                .text_center()
+                .with_text_outline(vec4(0.0, 0.0, 0.0, 0.9), 2.0)
+                .color_raw::<UiBase>(WHITE)
+                .entity();
+            hint_label = tree
+                .add_node()
+                .window(Rl(vec2(50.0, 72.0)), Ab(vec2(720.0, 30.0)), Anchor::Center)
+                .with_text("", 22.0)
+                .text_center()
+                .color_raw::<UiBase>(TEXT_DIM)
+                .entity();
+        });
     });
 
     HudHandles {
@@ -198,13 +243,44 @@ pub fn build(tree: &mut UiTreeBuilder) -> HudHandles {
         objective_label,
         score_label,
         combo_label,
+        boss_panel,
         boss_bar,
+        status_panel,
         status_label,
         hint_label,
         crosshair,
         damage_overlay,
         low_health_overlay,
     }
+}
+
+/// A readable HUD chip: rounded translucent panel with an accent border and a
+/// soft drop shadow, matching the engine's own paneled-HUD style.
+fn panel(
+    tree: &mut UiTreeBuilder,
+    position: impl Into<UiValue<Vec2>>,
+    size: impl Into<UiValue<Vec2>>,
+    anchor: Anchor,
+    fill: Vec4,
+    visible: bool,
+) -> Entity {
+    tree.add_node()
+        .window(position, size, anchor)
+        .with_rect(8.0, 1.5, PANEL_BORDER)
+        .color_raw::<UiBase>(fill)
+        .with_shadow(vec4(0.0, 0.0, 0.0, 0.35), vec2(0.0, 2.0), 12.0, 0.0)
+        .with_visible(visible)
+        .entity()
+}
+
+/// A small dimmed caption parented inside a chip (top-left relative offset).
+fn caption(tree: &mut UiTreeBuilder, text: &str, offset: impl Into<UiValue<Vec2>>) {
+    tree.add_node()
+        .window(offset, Ab(vec2(160.0, 14.0)), Anchor::TopLeft)
+        .with_text(text, 12.0)
+        .text_left()
+        .color_raw::<UiBase>(TEXT_DIM)
+        .entity();
 }
 
 pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
@@ -294,7 +370,7 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
         .and_then(|entity| boomer_world.get_enemy(entity))
         .map(|enemy| enemy.health);
     let show_boss = playing && boss_health.is_some();
-    ui_set_visible(world, hud.boss_bar, show_boss);
+    ui_set_visible(world, hud.boss_panel, show_boss);
     if let Some(health) = boss_health {
         let max = boomer_world.resources.game.boss_max_health.max(1.0);
         let fraction = (health / max).clamp(0.0, 1.0);
@@ -316,8 +392,7 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
     let exit_open = playing && level.exit_active && level.banner > 0.0;
     let intro = playing && level.banner > 0.0 && !exit_open;
     let show_status = dead || exit_open || intro;
-    ui_set_visible(world, hud.status_label, show_status);
-    ui_set_visible(world, hud.hint_label, show_status);
+    ui_set_visible(world, hud.status_panel, show_status);
     if dead {
         ui_set_text(world, hud.status_label, "YOU DIED");
         ui_set_text(
