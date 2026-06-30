@@ -2,6 +2,13 @@
 
 // Player movement (Quake-style: accelerate toward wishdir, friction with a
 // stop-speed, and air control that rewards strafe-jumping with real momentum).
+//
+// Heights are derived from GRAVITY: apex = impulse^2 / (2*|GRAVITY|). With
+// GRAVITY = -18 a 9.9 jump apexes ~2.7m (airtime ~1.1s), clearing the 1.0-2.5m
+// platforms; pads apex ~5.1m to reach the tall ledges; wall-jumps ~2.8m. The
+// engine's world gravity is set to GRAVITY at startup; only the player is a
+// physics body, so nothing else is affected.
+pub const GRAVITY: f32 = -18.0;
 pub const MOVE_SPEED: f32 = 12.0;
 pub const GROUND_ACCEL: f32 = 11.0;
 pub const AIR_ACCEL: f32 = 72.0;
@@ -9,7 +16,7 @@ pub const AIR_SPEED_CAP: f32 = 1.6;
 pub const GROUND_FRICTION: f32 = 8.0;
 pub const STOP_SPEED: f32 = 4.0;
 pub const MAX_GROUND_SPEED: f32 = 34.0;
-pub const JUMP_IMPULSE: f32 = 7.2;
+pub const JUMP_IMPULSE: f32 = 9.9;
 pub const GAMEPAD_DEADZONE: f32 = 0.15;
 /// Extra ground wishspeed per combo multiplier step above x1 (fraction of base).
 pub const COMBO_SPEED_PER_STEP: f32 = 0.06;
@@ -31,7 +38,7 @@ pub const WALL_RUN_CAMERA_TILT: f32 = 0.16;
 pub const WALL_RUN_TILT_LERP: f32 = 14.0;
 pub const WALL_RUN_FOV_POP: f32 = 6.0;
 pub const WALL_JUMP_LATERAL: f32 = 12.0;
-pub const WALL_JUMP_VERTICAL: f32 = 11.5;
+pub const WALL_JUMP_VERTICAL: f32 = 10.0;
 pub const WALL_JUMP_FORWARD: f32 = 7.0;
 
 // Dash
@@ -116,7 +123,9 @@ pub const ELITE_SCALE: f32 = 1.25;
 pub const ELITE_SCORE_MULT: u32 = 2;
 
 // Boss / warlord (a single climactic enemy in Boss missions)
-pub const BOSS_HEALTH_MULT: f32 = 7.0;
+// At 4.5x an elite brute is ~1170 HP: a real fight (~7s of focused shotgun
+// fire, longer while dodging) without becoming a bullet-sponge slog.
+pub const BOSS_HEALTH_MULT: f32 = 4.5;
 pub const BOSS_DAMAGE_MULT: f32 = 1.8;
 pub const BOSS_SCALE: f32 = 1.7;
 pub const BOSS_SCORE_MULT: u32 = 8;

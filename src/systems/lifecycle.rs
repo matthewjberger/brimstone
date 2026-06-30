@@ -11,6 +11,10 @@ pub fn initialize(boomer_world: &mut BoomerWorld, world: &mut World) {
     boomer_world.resources.settings.difficulty = crate::settings::load();
     boomer_world.resources.settings.loaded = true;
 
+    // Snappier-than-earth gravity for arcade-FPS feel; every vertical impulse in
+    // tuning is derived from this. Only the player is a physics body.
+    world.resources.physics.gravity = nalgebra_glm::vec3(0.0, crate::tuning::GRAVITY, 0.0);
+
     let settings = &mut world.resources.render_settings;
     settings.bloom_enabled = true;
     settings.bloom_intensity = 0.35;
