@@ -316,34 +316,34 @@ const L4_PADS: &[(f32, f32)] = &[];
 // cover and pickups, a low cover ring in the middle, and pillars to break the
 // warlord's sightlines. No exit until the floor is clear.
 // ============================================================================
+// A cathedral nave: you fight north up a colonnade toward a raised throne
+// where the warlord looms, flanked by two great monoliths, the gate beyond it.
 const L5_BLOCKS: &[BlockSpec] = &[
-    (15.0, 2.5, 0.0, 1.6, 5.0, 1.6, Pillar),
-    (-15.0, 2.5, 0.0, 1.6, 5.0, 1.6, Pillar),
-    (7.0, 2.5, 9.0, 1.6, 5.0, 1.6, Pillar),
-    (-7.0, 2.5, 9.0, 1.6, 5.0, 1.6, Pillar),
-    (7.0, 2.5, -9.0, 1.6, 5.0, 1.6, Pillar),
-    (-7.0, 2.5, -9.0, 1.6, 5.0, 1.6, Pillar),
-    (0.0, 1.0, 0.0, 5.0, 2.0, 5.0, Platform), // central dais
-    (13.0, 4.0, 13.0, 6.0, 8.0, 1.0, Wall),   // NE alcove walls
-    (16.5, 4.0, 11.0, 1.0, 8.0, 5.0, Wall),
-    (-13.0, 4.0, -13.0, 6.0, 8.0, 1.0, Wall), // SW alcove walls
-    (-16.5, 4.0, -11.0, 1.0, 8.0, 5.0, Wall),
-    (13.0, 0.45, 13.0, 2.0, 0.9, 2.0, Cover),
-    (-13.0, 0.45, -13.0, 2.0, 0.9, 2.0, Cover),
+    (0.0, 1.0, -12.0, 9.0, 2.0, 4.0, Platform), // throne stage, top 2
+    (-7.5, 3.0, -13.0, 3.0, 6.0, 3.0, Monument), // left monolith
+    (7.5, 3.0, -13.0, 3.0, 6.0, 3.0, Monument), // right monolith
+    (-6.5, 2.5, -2.0, 1.8, 5.0, 1.8, Pillar),   // nave colonnade
+    (6.5, 2.5, -2.0, 1.8, 5.0, 1.8, Pillar),
+    (-6.5, 2.5, 5.0, 1.8, 5.0, 1.8, Pillar),
+    (6.5, 2.5, 5.0, 1.8, 5.0, 1.8, Pillar),
+    (14.5, 0.5, 2.0, 5.0, 1.0, 4.0, Cover), // east aisle cover
+    (-14.5, 0.5, 2.0, 5.0, 1.0, 4.0, Cover), // west aisle cover
+    (0.0, 0.6, 11.0, 5.0, 1.2, 2.0, Cover), // cover by the entrance
 ];
 const L5_BEACONS: &[BeaconSpec] = &[
-    (0.0, 0.0, [1.7, 0.3, 0.25]),
-    (13.0, 13.0, [1.6, 0.6, 0.2]),
-    (-13.0, -13.0, [1.6, 0.6, 0.2]),
+    (0.0, -12.0, [2.2, 0.5, 0.18]), // throne, hot red
+    (-7.5, -13.0, [1.9, 0.6, 0.15]),
+    (7.5, -13.0, [1.9, 0.6, 0.15]),
+    (12.0, 11.0, [0.3, 0.4, 0.75]), // entrance, cold
+    (-12.0, 11.0, [0.3, 0.4, 0.75]),
 ];
 const L5_SPAWNS: &[(f32, f32)] = &[
-    (15.0, 12.0),
-    (-15.0, 12.0),
-    (15.0, -12.0),
-    (-15.0, -12.0),
-    (0.0, 14.0),
-    (10.0, 0.0),
-    (-10.0, 0.0),
+    (0.0, -13.0), // the throne (boss)
+    (15.0, -8.0),
+    (-15.0, -8.0),
+    (13.0, 4.0),
+    (-13.0, 4.0),
+    (0.0, 13.0),
 ];
 const L5_PADS: &[(f32, f32)] = &[];
 

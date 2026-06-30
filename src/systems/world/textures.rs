@@ -182,11 +182,13 @@ fn register_animated(world: &mut World, key: &str, base: art::Sprite, hurt: art:
 }
 
 pub fn floor_material() -> Material {
-    proto_material(FLOOR_TEXTURE, vec3(0.42, 0.40, 0.48), 0.92, 0.04, 6.0)
+    proto_material(FLOOR_TEXTURE, vec3(0.24, 0.24, 0.30), 0.92, 0.06, 5.0)
 }
 
+/// Dark gunmetal walls so each level's colour comes from its accent lights, not
+/// a flat neon-red base texture fighting them.
 pub fn wall_material() -> Material {
-    proto_material(WALL_TEXTURE, vec3(0.62, 0.34, 0.34), 0.86, 0.06, 4.0)
+    proto_material(FLOOR_TEXTURE, vec3(0.30, 0.33, 0.40), 0.8, 0.16, 3.0)
 }
 
 pub fn platform_material() -> Material {

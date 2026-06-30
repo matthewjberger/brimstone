@@ -1,7 +1,12 @@
 /target
-dist/
-vendor/
-logs/
-plugins/engine/*.wasm
-plugins/app/*.wasm
 THIRD_PARTY_LICENSES.html
+boom_best.txt
+boom_campaign.txt
+boom_custom_level.txt
+boom_settings.txt
+dist/
+level_*.png
+logs/
+plugins/app/*.wasm
+plugins/engine/*.wasm
+vendor/
