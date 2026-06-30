@@ -1,5 +1,5 @@
 use crate::content;
-use crate::ecs::{BoomerWorld, HudHandles, Phase, Screen, WeaponKind, WeaponState};
+use crate::ecs::{CobaltWorld, HudHandles, Phase, Screen, WeaponKind, WeaponState};
 use crate::systems::common::combo_multiplier;
 use crate::theme::*;
 use crate::tuning;
@@ -283,11 +283,11 @@ fn caption(tree: &mut UiTreeBuilder, text: &str, offset: impl Into<UiValue<Vec2>
         .entity();
 }
 
-pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
-    let hud = boomer_world.resources.ui_handles.hud;
-    let screen = boomer_world.resources.screen.current;
-    let phase = boomer_world.resources.game.phase;
-    let game = &boomer_world.resources.game;
+pub fn update(cobalt_world: &CobaltWorld, world: &mut World) {
+    let hud = cobalt_world.resources.ui_handles.hud;
+    let screen = cobalt_world.resources.screen.current;
+    let phase = cobalt_world.resources.game.phase;
+    let game = &cobalt_world.resources.game;
     let in_game = matches!(screen, Screen::InGame);
     let playing = in_game && matches!(phase, Phase::Playing);
     let elapsed = world.resources.window.timing.uptime_milliseconds as f32 / 1000.0;
@@ -295,19 +295,19 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
     ui_set_text(
         world,
         hud.health_label,
-        &format!("{:.0}", boomer_world.resources.stats.health.max(0.0)),
+        &format!("{:.0}", cobalt_world.resources.stats.health.max(0.0)),
     );
-    let weapon = &boomer_world.resources.weapon;
+    let weapon = &cobalt_world.resources.weapon;
     ui_set_text(world, hud.ammo_label, &ammo_text(weapon.current, weapon));
     ui_set_text(world, hud.weapon_label, weapon.current.name());
     ui_set_text(world, hud.ammo_rack, &weapon_rack(weapon));
     ui_set_text(world, hud.score_label, &format!("{}", game.score));
-    let level = &boomer_world.resources.level;
+    let level = &cobalt_world.resources.level;
     let definition = content::level(level.index);
     let level_name = if level.custom {
         "CUSTOM"
     } else if level.story {
-        crate::campaign::mission(boomer_world.resources.story.mission).title
+        crate::campaign::mission(cobalt_world.resources.story.mission).title
     } else {
         definition.name
     };
@@ -342,7 +342,7 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
                 }
             }
         };
-        let compass = objective_compass(boomer_world, world, level);
+        let compass = objective_compass(cobalt_world, world, level);
         ui_set_text(world, hud.objective_label, &format!("> {text}{compass}"));
     }
 
@@ -363,16 +363,16 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
         );
     }
 
-    let boss_health = boomer_world
+    let boss_health = cobalt_world
         .resources
         .game
         .boss_entity
-        .and_then(|entity| boomer_world.get_enemy(entity))
+        .and_then(|entity| cobalt_world.get_enemy(entity))
         .map(|enemy| enemy.health);
     let show_boss = playing && boss_health.is_some();
     ui_set_visible(world, hud.boss_panel, show_boss);
     if let Some(health) = boss_health {
-        let max = boomer_world.resources.game.boss_max_health.max(1.0);
+        let max = cobalt_world.resources.game.boss_max_health.max(1.0);
         let fraction = (health / max).clamp(0.0, 1.0);
         let filled = (fraction * 24.0).round() as usize;
         let bar: String = "|".repeat(filled) + &".".repeat(24 - filled);
@@ -380,7 +380,7 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
     }
 
     ui_set_visible(world, hud.crosshair, playing);
-    let hit = (boomer_world.resources.weapon.hit_marker / 0.12).clamp(0.0, 1.0);
+    let hit = (cobalt_world.resources.weapon.hit_marker / 0.12).clamp(0.0, 1.0);
     set_color(
         world,
         hud.crosshair,
@@ -432,7 +432,7 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
     );
 
     let health_fraction =
-        boomer_world.resources.stats.health / boomer_world.resources.stats.max_health;
+        cobalt_world.resources.stats.health / cobalt_world.resources.stats.max_health;
     let lowness = if playing && health_fraction < tuning::LOW_HEALTH_FRACTION {
         ((tuning::LOW_HEALTH_FRACTION - health_fraction) / tuning::LOW_HEALTH_FRACTION)
             .clamp(0.0, 1.0)
@@ -480,22 +480,22 @@ fn weapon_rack(weapon: &WeaponState) -> String {
 /// gate, or the keycard while it's still out there), relative to where the
 /// player is looking. Empty when there's nothing to navigate to.
 fn objective_compass(
-    boomer_world: &BoomerWorld,
+    cobalt_world: &CobaltWorld,
     world: &World,
     level: &crate::ecs::LevelState,
 ) -> String {
     let target = if level.exit_active {
         level.exit_position
     } else if matches!(level.objective, crate::campaign::Objective::Keycard)
-        && !boomer_world.resources.game.has_key
+        && !cobalt_world.resources.game.has_key
     {
-        let key = crate::campaign::mission(boomer_world.resources.story.mission).key;
+        let key = crate::campaign::mission(cobalt_world.resources.story.mission).key;
         nalgebra_glm::vec3(key[0], 0.0, key[2])
     } else {
         return String::new();
     };
 
-    let Some(player) = boomer_world
+    let Some(player) = cobalt_world
         .resources
         .player
         .player_entity
@@ -504,7 +504,7 @@ fn objective_compass(
     else {
         return String::new();
     };
-    let Some(camera) = boomer_world
+    let Some(camera) = cobalt_world
         .resources
         .player
         .camera_entity

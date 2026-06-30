@@ -1,16 +1,16 @@
 [package]
-name = "boom"
+name = "cobalt"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 edition = "2024"
 
 [lib]
-name = "boom_core"
+name = "cobalt_core"
 crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
 
 [[bin]]
-name = "boom"
+name = "cobalt"
 path = "src/main.rs"
 
 [dependencies]

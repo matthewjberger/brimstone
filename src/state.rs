@@ -1,10 +1,10 @@
-use crate::ecs::{BoomerWorld, Phase, Screen};
+use crate::ecs::{CobaltWorld, Phase, Screen};
 use crate::systems;
 use nightshade::ecs::camera::systems::first_person_camera_look_system;
 use nightshade::ecs::world::commands::capture_screenshot_to_path;
 use nightshade::prelude::*;
 
-/// Offline level-preview harness: `BOOM_SHOT=<idx>` (append `a` for an angled
+/// Offline level-preview harness: `COBALT_SHOT=<idx>` (append `a` for an angled
 /// bird's-eye) builds that level, frames a camera over it, saves a PNG, exits.
 struct Shot {
     index: usize,
@@ -14,18 +14,18 @@ struct Shot {
 
 #[derive(Default)]
 pub struct Brimstone {
-    pub boomer_world: BoomerWorld,
+    pub cobalt_world: CobaltWorld,
     shot: Option<Shot>,
 }
 
 impl State for Brimstone {
     fn initialize(&mut self, world: &mut World) {
         world.resources.window.title = "BRIMSTONE".to_string();
-        if let Ok(spec) = std::env::var("BOOM_SHOT") {
+        if let Ok(spec) = std::env::var("COBALT_SHOT") {
             self.shot = Some(self.shot_init(world, &spec));
             return;
         }
-        systems::lifecycle::initialize(&mut self.boomer_world, world);
+        systems::lifecycle::initialize(&mut self.cobalt_world, world);
     }
 
     fn run_systems(&mut self, world: &mut World) {
@@ -55,17 +55,17 @@ impl Brimstone {
         world.resources.physics.enabled = false;
 
         systems::world::textures::load(world);
-        systems::world::player::spawn(&mut self.boomer_world, world);
+        systems::world::player::spawn(&mut self.cobalt_world, world);
         let definition = crate::content::level(index);
-        systems::world::level::build(&mut self.boomer_world, world, definition);
+        systems::world::level::build(&mut self.cobalt_world, world, definition);
         world.resources.render_settings.fog = None;
 
-        if let Some(player) = self.boomer_world.resources.player.player_entity
+        if let Some(player) = self.cobalt_world.resources.player.player_entity
             && let Some(transform) = world.core.get_local_transform_mut(player)
         {
             transform.translation = nalgebra_glm::vec3(0.0, 0.0, 0.0);
         }
-        if let Some(camera) = self.boomer_world.resources.player.camera_entity {
+        if let Some(camera) = self.cobalt_world.resources.player.camera_entity {
             let reach = definition.half_x.max(definition.half_z);
             let (position, rotation) = if angled {
                 (
@@ -96,23 +96,23 @@ impl Brimstone {
     }
 
     fn run_game(&mut self, world: &mut World) {
-        systems::input::handle_global(&mut self.boomer_world, world);
-        systems::screens::title::handle_input(&mut self.boomer_world, world);
-        systems::screens::level_select::handle_input(&mut self.boomer_world, world);
-        systems::screens::mission_select::handle_input(&mut self.boomer_world, world);
-        systems::screens::pause::handle_input(&mut self.boomer_world, world);
-        systems::screens::cutscene::handle_input(&mut self.boomer_world, world);
+        systems::input::handle_global(&mut self.cobalt_world, world);
+        systems::screens::title::handle_input(&mut self.cobalt_world, world);
+        systems::screens::level_select::handle_input(&mut self.cobalt_world, world);
+        systems::screens::mission_select::handle_input(&mut self.cobalt_world, world);
+        systems::screens::pause::handle_input(&mut self.cobalt_world, world);
+        systems::screens::cutscene::handle_input(&mut self.cobalt_world, world);
 
-        if matches!(self.boomer_world.resources.screen.current, Screen::Editor) {
-            systems::editor::update(&mut self.boomer_world, world);
-            systems::world::fx::tick(&mut self.boomer_world, world);
+        if matches!(self.cobalt_world.resources.screen.current, Screen::Editor) {
+            systems::editor::update(&mut self.cobalt_world, world);
+            systems::world::fx::tick(&mut self.cobalt_world, world);
         }
 
-        if matches!(self.boomer_world.resources.screen.current, Screen::InGame) {
+        if matches!(self.cobalt_world.resources.screen.current, Screen::InGame) {
             let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-            let playing = matches!(self.boomer_world.resources.game.phase, Phase::Playing);
+            let playing = matches!(self.cobalt_world.resources.game.phase, Phase::Playing);
             let frozen = {
-                let game = &mut self.boomer_world.resources.game;
+                let game = &mut self.cobalt_world.resources.game;
                 if game.hitstop > 0.0 {
                     game.hitstop -= delta;
                     true
@@ -122,25 +122,25 @@ impl Brimstone {
             };
 
             let sim_active = playing && !frozen;
-            self.boomer_world.resources.player.sim_active = sim_active;
+            self.cobalt_world.resources.player.sim_active = sim_active;
             if sim_active {
-                systems::world::player::pre_look(&self.boomer_world, world);
+                systems::world::player::pre_look(&self.cobalt_world, world);
                 first_person_camera_look_system(world);
-                systems::world::player::movement(&mut self.boomer_world, world);
-                systems::world::weapon::update(&mut self.boomer_world, world);
-                systems::world::enemies::update(&mut self.boomer_world, world);
-                systems::world::projectiles::update(&mut self.boomer_world, world);
-                systems::world::pickups::update(&mut self.boomer_world, world);
-                systems::world::game::tick(&mut self.boomer_world, world);
+                systems::world::player::movement(&mut self.cobalt_world, world);
+                systems::world::weapon::update(&mut self.cobalt_world, world);
+                systems::world::enemies::update(&mut self.cobalt_world, world);
+                systems::world::projectiles::update(&mut self.cobalt_world, world);
+                systems::world::pickups::update(&mut self.cobalt_world, world);
+                systems::world::game::tick(&mut self.cobalt_world, world);
             }
 
-            systems::world::player::apply_camera_feel(&mut self.boomer_world, world);
-            systems::world::billboard::update(&mut self.boomer_world, world);
-            systems::world::fx::tick(&mut self.boomer_world, world);
+            systems::world::player::apply_camera_feel(&mut self.cobalt_world, world);
+            systems::world::billboard::update(&mut self.cobalt_world, world);
+            systems::world::fx::tick(&mut self.cobalt_world, world);
         }
 
-        systems::world::audio::tick(&mut self.boomer_world, world);
-        systems::screens::hud::update(&self.boomer_world, world);
-        systems::screens::cutscene::update(&mut self.boomer_world, world);
+        systems::world::audio::tick(&mut self.cobalt_world, world);
+        systems::screens::hud::update(&self.cobalt_world, world);
+        systems::screens::cutscene::update(&mut self.cobalt_world, world);
     }
 }

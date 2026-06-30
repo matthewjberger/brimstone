@@ -7,7 +7,7 @@ pub use resources::*;
 use nightshade::prelude::freecs;
 
 freecs::ecs! {
-    BoomerWorld {
+    CobaltWorld {
         engine_entity: EngineEntity => ENGINE_ENTITY,
         enemy: Enemy => ENEMY,
         pickup: Pickup => PICKUP,

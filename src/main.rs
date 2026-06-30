@@ -1,4 +1,4 @@
-use boom_core::Brimstone;
+use cobalt_core::Brimstone;
 use nightshade::prelude::launch;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

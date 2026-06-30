@@ -10,24 +10,24 @@ use nightshade::render::wgpu::texture_cache::{
     SamplerSettings, TextureUsage, texture_cache_protect,
 };
 
-pub const FLOOR_TEXTURE: &str = "boom_floor";
-pub const WALL_TEXTURE: &str = "boom_wall";
-pub const PLATFORM_TEXTURE: &str = "boom_platform";
-pub const PILLAR_TEXTURE: &str = "boom_pillar";
-pub const ACCENT_TEXTURE: &str = "boom_accent";
+pub const FLOOR_TEXTURE: &str = "cobalt_floor";
+pub const WALL_TEXTURE: &str = "cobalt_wall";
+pub const PLATFORM_TEXTURE: &str = "cobalt_platform";
+pub const PILLAR_TEXTURE: &str = "cobalt_pillar";
+pub const ACCENT_TEXTURE: &str = "cobalt_accent";
 
-pub const MAT_FIREBALL: &str = "boom_mat_fireball";
-pub const MAT_ROCKET: &str = "boom_mat_rocket";
-pub const MAT_MEDKIT: &str = "boom_mat_medkit";
-pub const MAT_AMMO: &str = "boom_mat_ammo";
-pub const MAT_KEYCARD: &str = "boom_mat_keycard";
-pub const MAT_EXIT: &str = "boom_mat_exit";
-pub const PAD_MATERIAL: &str = "boom_mat_pad";
-pub const MARKER_PLAYER: &str = "boom_mat_marker_player";
-pub const MARKER_ENEMY: &str = "boom_mat_marker_enemy";
-pub const MAT_GHOST: &str = "boom_mat_ghost";
+pub const MAT_FIREBALL: &str = "cobalt_mat_fireball";
+pub const MAT_ROCKET: &str = "cobalt_mat_rocket";
+pub const MAT_MEDKIT: &str = "cobalt_mat_medkit";
+pub const MAT_AMMO: &str = "cobalt_mat_ammo";
+pub const MAT_KEYCARD: &str = "cobalt_mat_keycard";
+pub const MAT_EXIT: &str = "cobalt_mat_exit";
+pub const PAD_MATERIAL: &str = "cobalt_mat_pad";
+pub const MARKER_PLAYER: &str = "cobalt_mat_marker_player";
+pub const MARKER_ENEMY: &str = "cobalt_mat_marker_enemy";
+pub const MAT_GHOST: &str = "cobalt_mat_ghost";
 
-pub const BILLBOARD_MESH: &str = "boom_billboard";
+pub const BILLBOARD_MESH: &str = "cobalt_billboard";
 
 const PROTOTYPE_TEXTURES: &[(&str, &[u8])] = &[
     (
@@ -77,24 +77,24 @@ pub fn load(world: &mut World) {
         art::sentinel_hurt(),
     );
 
-    upload_sprite(world, "boom_fireball", art::fireball());
-    upload_sprite(world, "boom_rocket", art::rocket());
-    upload_sprite(world, "boom_medkit", art::medkit());
-    upload_sprite(world, "boom_ammo", art::ammo_box());
-    upload_sprite(world, "boom_keycard", art::keycard());
+    upload_sprite(world, "cobalt_fireball", art::fireball());
+    upload_sprite(world, "cobalt_rocket", art::rocket());
+    upload_sprite(world, "cobalt_medkit", art::medkit());
+    upload_sprite(world, "cobalt_ammo", art::ammo_box());
+    upload_sprite(world, "cobalt_keycard", art::keycard());
 
-    register_material(world, MAT_FIREBALL, glow_material("boom_fireball"));
+    register_material(world, MAT_FIREBALL, glow_material("cobalt_fireball"));
     register_material(
         world,
         MAT_ROCKET,
-        glow_material_tinted("boom_rocket", [0.4, 0.7, 1.0]),
+        glow_material_tinted("cobalt_rocket", [0.4, 0.7, 1.0]),
     );
-    register_material(world, MAT_MEDKIT, sprite_material("boom_medkit"));
-    register_material(world, MAT_AMMO, sprite_material("boom_ammo"));
+    register_material(world, MAT_MEDKIT, sprite_material("cobalt_medkit"));
+    register_material(world, MAT_AMMO, sprite_material("cobalt_ammo"));
     register_material(
         world,
         MAT_KEYCARD,
-        glow_material_tinted("boom_keycard", [1.0, 0.85, 0.2]),
+        glow_material_tinted("cobalt_keycard", [1.0, 0.85, 0.2]),
     );
     register_material(world, MAT_EXIT, beacon_material(vec3(0.3, 1.8, 0.7), 5.0));
     register_material(
@@ -159,24 +159,24 @@ fn register_material(world: &mut World, name: &str, material: Material) {
 /// material and an emissive `_e` variant for elites, plus one shared hurt flash.
 fn register_animated(world: &mut World, key: &str, base: art::Sprite, hurt: art::Sprite) {
     for index in 0..art::ANIM_FRAMES {
-        let texture = format!("boom_{key}_f{index}");
+        let texture = format!("cobalt_{key}_f{index}");
         upload_sprite(world, &texture, art::frame(&base, index));
         register_material(
             world,
-            &format!("boom_mat_{key}_f{index}"),
+            &format!("cobalt_mat_{key}_f{index}"),
             sprite_material(&texture),
         );
         register_material(
             world,
-            &format!("boom_mat_{key}_f{index}_e"),
+            &format!("cobalt_mat_{key}_f{index}_e"),
             hurt_material(&texture),
         );
     }
-    let hurt_texture = format!("boom_{key}_hurt");
+    let hurt_texture = format!("cobalt_{key}_hurt");
     upload_sprite(world, &hurt_texture, hurt);
     register_material(
         world,
-        &format!("boom_mat_{key}_hurt"),
+        &format!("cobalt_mat_{key}_hurt"),
         hurt_material(&hurt_texture),
     );
 }

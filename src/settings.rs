@@ -2,7 +2,7 @@
 
 use crate::ecs::Difficulty;
 
-const SETTINGS_PATH: &str = "boom_settings.txt";
+const SETTINGS_PATH: &str = "cobalt_settings.txt";
 
 pub fn load() -> Difficulty {
     std::fs::read_to_string(SETTINGS_PATH)

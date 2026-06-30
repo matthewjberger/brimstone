@@ -1,4 +1,4 @@
-use crate::ecs::{BoomerWorld, ENEMY, EnemyState, WeaponKind, WeaponState};
+use crate::ecs::{CobaltWorld, ENEMY, EnemyState, WeaponKind, WeaponState};
 use crate::systems::common::random_range;
 use crate::systems::world::{audio, enemies, fx, projectiles};
 use crate::tuning;
@@ -80,15 +80,15 @@ fn weapon_stats(kind: WeaponKind) -> WeaponStats {
     }
 }
 
-pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
+pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    boomer_world.resources.weapon.cooldown =
-        (boomer_world.resources.weapon.cooldown - delta).max(0.0);
-    boomer_world.resources.weapon.hit_marker =
-        (boomer_world.resources.weapon.hit_marker - delta).max(0.0);
+    cobalt_world.resources.weapon.cooldown =
+        (cobalt_world.resources.weapon.cooldown - delta).max(0.0);
+    cobalt_world.resources.weapon.hit_marker =
+        (cobalt_world.resources.weapon.hit_marker - delta).max(0.0);
 
-    switch_weapons(boomer_world, world);
-    auto_equip_sidearm(&mut boomer_world.resources.weapon);
+    switch_weapons(cobalt_world, world);
+    auto_equip_sidearm(&mut cobalt_world.resources.weapon);
 
     let mouse_fire = world
         .resources
@@ -101,27 +101,27 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         .unwrap_or(false);
     let firing = mouse_fire || gamepad_fire;
 
-    if !firing || boomer_world.resources.weapon.cooldown > 0.0 {
+    if !firing || cobalt_world.resources.weapon.cooldown > 0.0 {
         return;
     }
 
-    let kind = boomer_world.resources.weapon.current;
+    let kind = cobalt_world.resources.weapon.current;
 
-    if !kind.infinite() && boomer_world.resources.weapon.ammo(kind) == 0 {
-        boomer_world.resources.weapon.cooldown = 0.2;
-        audio::play(boomer_world, world, audio::EMPTY, 0.5);
+    if !kind.infinite() && cobalt_world.resources.weapon.ammo(kind) == 0 {
+        cobalt_world.resources.weapon.cooldown = 0.2;
+        audio::play(cobalt_world, world, audio::EMPTY, 0.5);
         return;
     }
 
     let stats = weapon_stats(kind);
 
     if !kind.infinite() {
-        *boomer_world.resources.weapon.ammo_mut(kind) -= 1;
+        *cobalt_world.resources.weapon.ammo_mut(kind) -= 1;
     }
-    boomer_world.resources.weapon.cooldown = stats.cooldown;
-    boomer_world.resources.game.shake += stats.shake;
-    boomer_world.resources.game.cam_kick += stats.kick;
-    boomer_world.resources.game.fov_pop = boomer_world.resources.game.fov_pop.max(stats.fov_pop);
+    cobalt_world.resources.weapon.cooldown = stats.cooldown;
+    cobalt_world.resources.game.shake += stats.shake;
+    cobalt_world.resources.game.cam_kick += stats.kick;
+    cobalt_world.resources.game.fov_pop = cobalt_world.resources.game.fov_pop.max(stats.fov_pop);
     let (sound, sound_volume) = match kind {
         WeaponKind::Shotgun => (audio::SHOTGUN, 0.9),
         WeaponKind::Nailgun => (audio::NAILGUN, 0.4),
@@ -129,23 +129,23 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         WeaponKind::Railgun => (audio::RAILGUN, 0.8),
         WeaponKind::Pistol => (audio::NAILGUN, 0.5),
     };
-    audio::play(boomer_world, world, sound, sound_volume);
+    audio::play(cobalt_world, world, sound, sound_volume);
 
-    let Some((origin, forward, right, up)) = camera_frame(boomer_world, world) else {
+    let Some((origin, forward, right, up)) = camera_frame(cobalt_world, world) else {
         return;
     };
     let muzzle = origin + forward * 0.6 - up * 0.12 + right * 0.12;
-    fx::muzzle(boomer_world, world, muzzle, forward);
+    fx::muzzle(cobalt_world, world, muzzle, forward);
 
     if matches!(kind, WeaponKind::Rocket) {
-        projectiles::spawn_rocket(boomer_world, world, muzzle, forward);
+        projectiles::spawn_rocket(cobalt_world, world, muzzle, forward);
         return;
     }
 
-    let targets: Vec<(Entity, Vec3)> = boomer_world
+    let targets: Vec<(Entity, Vec3)> = cobalt_world
         .query_entities(ENEMY)
         .filter_map(|game_entity| {
-            let enemy = boomer_world.get_enemy(game_entity)?;
+            let enemy = cobalt_world.get_enemy(game_entity)?;
             if enemy.state == EnemyState::Dying {
                 None
             } else {
@@ -154,7 +154,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         })
         .collect();
 
-    let player = boomer_world.resources.player.player_entity;
+    let player = cobalt_world.resources.player.player_entity;
     let mut connected = false;
 
     if matches!(kind, WeaponKind::Railgun) {
@@ -180,11 +180,11 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         }
 
         let end = origin + direction * wall_distance;
-        fx::tracer(boomer_world, world, muzzle, end, stats.tracer);
+        fx::tracer(cobalt_world, world, muzzle, end, stats.tracer);
         let hit_anything = !hits.is_empty();
         for (game_entity, point) in hits {
             enemies::damage(
-                boomer_world,
+                cobalt_world,
                 world,
                 game_entity,
                 stats.damage,
@@ -193,8 +193,8 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
             );
         }
         if hit_anything {
-            boomer_world.resources.weapon.hit_marker = 0.12;
-            boomer_world.resources.game.hitstop = boomer_world
+            cobalt_world.resources.weapon.hit_marker = 0.12;
+            cobalt_world.resources.game.hitstop = cobalt_world
                 .resources
                 .game
                 .hitstop
@@ -212,12 +212,12 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
             let jitter = stats.spread;
             (
                 random_range(
-                    &mut boomer_world.resources.game.random_state,
+                    &mut cobalt_world.resources.game.random_state,
                     -jitter,
                     jitter,
                 ),
                 random_range(
-                    &mut boomer_world.resources.game.random_state,
+                    &mut cobalt_world.resources.game.random_state,
                     -jitter,
                     jitter,
                 ),
@@ -248,9 +248,9 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
 
         if let Some((game_entity, distance)) = best {
             let point = origin + direction * distance;
-            fx::tracer(boomer_world, world, muzzle, point, stats.tracer);
+            fx::tracer(cobalt_world, world, muzzle, point, stats.tracer);
             enemies::damage(
-                boomer_world,
+                cobalt_world,
                 world,
                 game_entity,
                 stats.damage,
@@ -260,14 +260,14 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
             connected = true;
         } else {
             let end = origin + direction * wall_distance;
-            fx::tracer(boomer_world, world, muzzle, end, stats.tracer);
+            fx::tracer(cobalt_world, world, muzzle, end, stats.tracer);
         }
     }
 
     if connected {
-        boomer_world.resources.weapon.hit_marker = 0.12;
+        cobalt_world.resources.weapon.hit_marker = 0.12;
         if matches!(kind, WeaponKind::Shotgun) {
-            boomer_world.resources.game.hitstop = boomer_world
+            cobalt_world.resources.game.hitstop = cobalt_world
                 .resources
                 .game
                 .hitstop
@@ -276,7 +276,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
     }
 }
 
-fn switch_weapons(boomer_world: &mut BoomerWorld, world: &World) {
+fn switch_weapons(cobalt_world: &mut CobaltWorld, world: &World) {
     let keyboard = &world.resources.input.keyboard;
     let direct = [
         (KeyCode::Digit1, WeaponKind::Shotgun),
@@ -287,17 +287,17 @@ fn switch_weapons(boomer_world: &mut BoomerWorld, world: &World) {
     ];
     for (key, weapon) in direct {
         if keyboard.just_pressed(key) {
-            boomer_world.resources.weapon.current = weapon;
+            cobalt_world.resources.weapon.current = weapon;
             return;
         }
     }
 
     let gamepad = &world.resources.input.gamepad.just_pressed_buttons;
-    let current = boomer_world.resources.weapon.current;
+    let current = cobalt_world.resources.weapon.current;
     if gamepad.contains(&gilrs::Button::DPadUp) {
-        boomer_world.resources.weapon.current = cycle_weapon(current, 1);
+        cobalt_world.resources.weapon.current = cycle_weapon(current, 1);
     } else if gamepad.contains(&gilrs::Button::DPadDown) {
-        boomer_world.resources.weapon.current = cycle_weapon(current, -1);
+        cobalt_world.resources.weapon.current = cycle_weapon(current, -1);
     }
 }
 
@@ -326,8 +326,8 @@ fn auto_equip_sidearm(weapon: &mut WeaponState) {
     }
 }
 
-fn camera_frame(boomer_world: &BoomerWorld, world: &World) -> Option<(Vec3, Vec3, Vec3, Vec3)> {
-    let camera = boomer_world.resources.player.camera_entity?;
+fn camera_frame(cobalt_world: &CobaltWorld, world: &World) -> Option<(Vec3, Vec3, Vec3, Vec3)> {
+    let camera = cobalt_world.resources.player.camera_entity?;
     let transform = world.core.get_global_transform(camera)?;
     Some((
         transform.translation(),

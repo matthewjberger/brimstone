@@ -1,4 +1,4 @@
-use crate::ecs::{BoomerWorld, ENEMY, ENGINE_ENTITY, PICKUP};
+use crate::ecs::{CobaltWorld, ENEMY, ENGINE_ENTITY, PICKUP};
 use crate::systems::world::textures::BILLBOARD_MESH;
 use nalgebra_glm::{Vec3, quat_angle_axis, vec3};
 use nightshade::prelude::*;
@@ -47,8 +47,8 @@ pub fn spawn(world: &mut World, material: &str, position: Vec3, scale: Vec3) -> 
     entity
 }
 
-pub fn camera_position(boomer_world: &BoomerWorld, world: &World) -> Vec3 {
-    boomer_world
+pub fn camera_position(cobalt_world: &CobaltWorld, world: &World) -> Vec3 {
+    cobalt_world
         .resources
         .player
         .camera_entity
@@ -75,14 +75,14 @@ pub fn face(world: &mut World, entity: Entity, position: Vec3, camera_position: 
         .set_local_transform_dirty(entity, LocalTransformDirty);
 }
 
-pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
-    let camera = camera_position(boomer_world, world);
+pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    let camera = camera_position(cobalt_world, world);
 
-    let enemies: Vec<(Entity, Vec3)> = boomer_world
+    let enemies: Vec<(Entity, Vec3)> = cobalt_world
         .query_entities(ENEMY | ENGINE_ENTITY)
         .filter_map(|game_entity| {
-            let engine = boomer_world.get_engine_entity(game_entity)?.0;
-            let position = boomer_world.get_enemy(game_entity)?.position;
+            let engine = cobalt_world.get_engine_entity(game_entity)?.0;
+            let position = cobalt_world.get_enemy(game_entity)?.position;
             Some((engine, position))
         })
         .collect();
@@ -90,11 +90,11 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         face(world, engine, position, camera);
     }
 
-    let pickups: Vec<(Entity, Vec3)> = boomer_world
+    let pickups: Vec<(Entity, Vec3)> = cobalt_world
         .query_entities(PICKUP | ENGINE_ENTITY)
         .filter_map(|game_entity| {
-            let engine = boomer_world.get_engine_entity(game_entity)?.0;
-            let position = boomer_world.get_pickup(game_entity)?.position;
+            let engine = cobalt_world.get_engine_entity(game_entity)?.0;
+            let position = cobalt_world.get_pickup(game_entity)?.position;
             Some((engine, position))
         })
         .collect();
@@ -102,7 +102,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         face(world, engine, position, camera);
     }
 
-    let projectiles: Vec<(Entity, Vec3)> = boomer_world
+    let projectiles: Vec<(Entity, Vec3)> = cobalt_world
         .resources
         .projectiles
         .items

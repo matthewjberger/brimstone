@@ -1,5 +1,5 @@
 use crate::ecs::{
-    BoomerWorld, ENGINE_ENTITY, EngineEntity, PICKUP, Pickup, PickupKind, WeaponKind,
+    CobaltWorld, ENGINE_ENTITY, EngineEntity, PICKUP, Pickup, PickupKind, WeaponKind,
 };
 use crate::systems::common::next_random;
 use crate::systems::world::textures::{MAT_AMMO, MAT_KEYCARD, MAT_MEDKIT};
@@ -12,24 +12,24 @@ use nightshade::prelude::*;
 const INITIAL_HEALTH: [(f32, f32); 2] = [(8.0, -8.0), (-9.0, 9.0)];
 const INITIAL_AMMO: [(f32, f32); 3] = [(9.0, 9.0), (-8.0, -8.0), (0.0, 13.0)];
 
-pub fn spawn_initial(boomer_world: &mut BoomerWorld, world: &mut World) {
+pub fn spawn_initial(cobalt_world: &mut CobaltWorld, world: &mut World) {
     for (x, z) in INITIAL_HEALTH {
-        spawn_pickup(boomer_world, world, PickupKind::Health, vec3(x, 0.0, z));
+        spawn_pickup(cobalt_world, world, PickupKind::Health, vec3(x, 0.0, z));
     }
     for (x, z) in INITIAL_AMMO {
-        spawn_pickup(boomer_world, world, PickupKind::Ammo, vec3(x, 0.0, z));
+        spawn_pickup(cobalt_world, world, PickupKind::Ammo, vec3(x, 0.0, z));
     }
 }
 
 /// Push-forward economy: kills drop what the player is short on, so staying
 /// aggressive sustains you and the drops pull you into the fight.
-pub fn maybe_drop(boomer_world: &mut BoomerWorld, world: &mut World, position: Vec3) {
+pub fn maybe_drop(cobalt_world: &mut CobaltWorld, world: &mut World, position: Vec3) {
     let health_fraction =
-        boomer_world.resources.stats.health / boomer_world.resources.stats.max_health;
-    let current = boomer_world.resources.weapon.current;
+        cobalt_world.resources.stats.health / cobalt_world.resources.stats.max_health;
+    let current = cobalt_world.resources.weapon.current;
     let ammo_fraction =
-        boomer_world.resources.weapon.ammo(current) as f32 / current.max_ammo().max(1) as f32;
-    let roll = next_random(&mut boomer_world.resources.game.random_state);
+        cobalt_world.resources.weapon.ammo(current) as f32 / current.max_ammo().max(1) as f32;
+    let roll = next_random(&mut cobalt_world.resources.game.random_state);
 
     let kind = if health_fraction < 0.5 && roll < 0.32 {
         Some(PickupKind::Health)
@@ -40,21 +40,21 @@ pub fn maybe_drop(boomer_world: &mut BoomerWorld, world: &mut World, position: V
     };
 
     if let Some(kind) = kind {
-        spawn_pickup(boomer_world, world, kind, vec3(position.x, 0.0, position.z));
+        spawn_pickup(cobalt_world, world, kind, vec3(position.x, 0.0, position.z));
     }
 }
 
 /// Drop the mission keycard at a fixed spot for `Keycard` objectives.
-pub fn spawn_keycard(boomer_world: &mut BoomerWorld, world: &mut World, position: Vec3) {
+pub fn spawn_keycard(cobalt_world: &mut CobaltWorld, world: &mut World, position: Vec3) {
     spawn_pickup(
-        boomer_world,
+        cobalt_world,
         world,
         PickupKind::Keycard,
         vec3(position.x, 0.0, position.z),
     );
 }
 
-fn spawn_pickup(boomer_world: &mut BoomerWorld, world: &mut World, kind: PickupKind, ground: Vec3) {
+fn spawn_pickup(cobalt_world: &mut CobaltWorld, world: &mut World, kind: PickupKind, ground: Vec3) {
     let material = match kind {
         PickupKind::Health => MAT_MEDKIT,
         PickupKind::Ammo => MAT_AMMO,
@@ -67,9 +67,9 @@ fn spawn_pickup(boomer_world: &mut BoomerWorld, world: &mut World, kind: PickupK
     };
     let position = vec3(ground.x, tuning::PICKUP_HOVER, ground.z);
     let engine = billboard::spawn(world, material, position, scale);
-    let game_entity = boomer_world.spawn_entities(PICKUP | ENGINE_ENTITY, 1)[0];
-    boomer_world.set_engine_entity(game_entity, EngineEntity(engine));
-    boomer_world.set_pickup(
+    let game_entity = cobalt_world.spawn_entities(PICKUP | ENGINE_ENTITY, 1)[0];
+    cobalt_world.set_engine_entity(game_entity, EngineEntity(engine));
+    cobalt_world.set_pickup(
         game_entity,
         Pickup {
             position,
@@ -79,15 +79,15 @@ fn spawn_pickup(boomer_world: &mut BoomerWorld, world: &mut World, kind: PickupK
     );
 }
 
-pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
+pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    let player_position = player::position(boomer_world, world);
+    let player_position = player::position(cobalt_world, world);
 
-    let snapshots: Vec<(Entity, Entity, Pickup)> = boomer_world
+    let snapshots: Vec<(Entity, Entity, Pickup)> = cobalt_world
         .query_entities(PICKUP | ENGINE_ENTITY)
         .filter_map(|game_entity| {
-            let engine = boomer_world.get_engine_entity(game_entity)?.0;
-            let pickup = *boomer_world.get_pickup(game_entity)?;
+            let engine = cobalt_world.get_engine_entity(game_entity)?.0;
+            let pickup = *cobalt_world.get_pickup(game_entity)?;
             Some((game_entity, engine, pickup))
         })
         .collect();
@@ -104,20 +104,20 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         let close = offset.norm() < tuning::PICKUP_RADIUS;
         let wanted = match updated.kind {
             PickupKind::Health => {
-                boomer_world.resources.stats.health < boomer_world.resources.stats.max_health
+                cobalt_world.resources.stats.health < cobalt_world.resources.stats.max_health
             }
             PickupKind::Ammo => {
-                let weapon = &boomer_world.resources.weapon;
+                let weapon = &cobalt_world.resources.weapon;
                 WeaponKind::ALL
                     .iter()
                     .any(|&kind| weapon.ammo(kind) < kind.max_ammo())
             }
-            PickupKind::Keycard => !boomer_world.resources.game.has_key,
+            PickupKind::Keycard => !cobalt_world.resources.game.has_key,
         };
 
         if close && wanted {
             collected.push((game_entity, engine, updated.position, updated.kind));
-        } else if let Some(slot) = boomer_world.get_pickup_mut(game_entity) {
+        } else if let Some(slot) = cobalt_world.get_pickup_mut(game_entity) {
             *slot = updated;
         }
     }
@@ -125,18 +125,18 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
     for (game_entity, engine, position, kind) in collected {
         match kind {
             PickupKind::Health => {
-                let max = boomer_world.resources.stats.max_health;
-                boomer_world.resources.stats.health =
-                    (boomer_world.resources.stats.health + tuning::HEALTH_PICKUP_AMOUNT).min(max);
+                let max = cobalt_world.resources.stats.max_health;
+                cobalt_world.resources.stats.health =
+                    (cobalt_world.resources.stats.health + tuning::HEALTH_PICKUP_AMOUNT).min(max);
             }
             PickupKind::Ammo => {
-                let weapon = &mut boomer_world.resources.weapon;
+                let weapon = &mut cobalt_world.resources.weapon;
                 for kind in WeaponKind::ALL {
                     weapon.add_ammo(kind, kind.pickup_ammo());
                 }
             }
             PickupKind::Keycard => {
-                boomer_world.resources.game.has_key = true;
+                cobalt_world.resources.game.has_key = true;
             }
         }
         let color = match kind {
@@ -144,18 +144,18 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
             PickupKind::Ammo => vec3(1.0, 0.85, 0.3),
             PickupKind::Keycard => vec3(1.0, 0.85, 0.2),
         };
-        fx::hit(boomer_world, world, position, color);
-        audio::play(boomer_world, world, audio::PICKUP, 0.7);
+        fx::hit(cobalt_world, world, position, color);
+        audio::play(cobalt_world, world, audio::PICKUP, 0.7);
         queue_ecs_command(world, EcsCommand::DespawnRecursive { entity: engine });
-        boomer_world.despawn_entities(&[game_entity]);
+        cobalt_world.despawn_entities(&[game_entity]);
     }
 }
 
-pub fn despawn_all(boomer_world: &mut BoomerWorld, world: &mut World) {
-    let engines: Vec<Entity> = boomer_world
+pub fn despawn_all(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    let engines: Vec<Entity> = cobalt_world
         .query_entities(PICKUP | ENGINE_ENTITY)
         .filter_map(|game_entity| {
-            boomer_world
+            cobalt_world
                 .get_engine_entity(game_entity)
                 .map(|link| link.0)
         })
@@ -163,8 +163,8 @@ pub fn despawn_all(boomer_world: &mut BoomerWorld, world: &mut World) {
     for engine in engines {
         queue_ecs_command(world, EcsCommand::DespawnRecursive { entity: engine });
     }
-    let game_entities: Vec<Entity> = boomer_world.query_entities(PICKUP).collect();
+    let game_entities: Vec<Entity> = cobalt_world.query_entities(PICKUP).collect();
     if !game_entities.is_empty() {
-        boomer_world.despawn_entities(&game_entities);
+        cobalt_world.despawn_entities(&game_entities);
     }
 }

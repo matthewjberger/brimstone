@@ -96,10 +96,10 @@ build-steamdeck:
 # Builds and deploys the project to Steam Deck
 deploy-steamdeck:
     just build-steamdeck
-    scp ./target/x86_64-unknown-linux-gnu/release/boom deck@steamdeck.local:~/Downloads
+    scp ./target/x86_64-unknown-linux-gnu/release/cobalt deck@steamdeck.local:~/Downloads
 
 # Quick deploy to Steam Deck (renames to 'game' for easy launching)
 deploy-steamdeck-quick:
     just build-steamdeck
-    scp ./target/x86_64-unknown-linux-gnu/release/boom deck@steamdeck.local:~/Downloads/game
+    scp ./target/x86_64-unknown-linux-gnu/release/cobalt deck@steamdeck.local:~/Downloads/game
     ssh deck@steamdeck.local "chmod +x ~/Downloads/game"

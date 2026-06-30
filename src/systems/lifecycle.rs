@@ -1,15 +1,15 @@
-use crate::ecs::{BoomerWorld, Screen, UiHandles};
+use crate::ecs::{CobaltWorld, Screen, UiHandles};
 use crate::systems::screens::{cutscene, hud, level_select, mission_select, pause, title};
 use crate::systems::world::{audio, game, player, textures};
 use nightshade::ecs::graphics::resources::ColorGradingPreset;
 use nightshade::prelude::*;
 
-pub fn initialize(boomer_world: &mut BoomerWorld, world: &mut World) {
+pub fn initialize(cobalt_world: &mut CobaltWorld, world: &mut World) {
     world.resources.user_interface.enabled = true;
     world.resources.retained_ui.enabled = true;
 
-    boomer_world.resources.settings.difficulty = crate::settings::load();
-    boomer_world.resources.settings.loaded = true;
+    cobalt_world.resources.settings.difficulty = crate::settings::load();
+    cobalt_world.resources.settings.loaded = true;
 
     // Snappier-than-earth gravity for arcade-FPS feel; every vertical impulse in
     // tuning is derived from this. Only the player is a physics body.
@@ -24,8 +24,8 @@ pub fn initialize(boomer_world: &mut BoomerWorld, world: &mut World) {
 
     textures::load(world);
     audio::load(world);
-    player::spawn(boomer_world, world);
-    game::start_at(boomer_world, world, 0);
+    player::spawn(cobalt_world, world);
+    game::start_at(cobalt_world, world, 0);
 
     let mut tree = UiTreeBuilder::new(world);
     let title_handles = title::build(&mut tree);
@@ -36,22 +36,22 @@ pub fn initialize(boomer_world: &mut BoomerWorld, world: &mut World) {
     let cutscene_handles = cutscene::build(&mut tree);
     let mission_select_handles = mission_select::build(&mut tree);
     tree.finish();
-    boomer_world.resources.ui_handles.title = title_handles;
-    boomer_world.resources.ui_handles.level_select = level_select_handles;
-    boomer_world.resources.ui_handles.mission_select = mission_select_handles;
-    boomer_world.resources.ui_handles.pause = pause_handles;
-    boomer_world.resources.ui_handles.hud = hud_handles;
-    boomer_world.resources.ui_handles.editor = editor_handles;
-    boomer_world.resources.ui_handles.cutscene = cutscene_handles;
+    cobalt_world.resources.ui_handles.title = title_handles;
+    cobalt_world.resources.ui_handles.level_select = level_select_handles;
+    cobalt_world.resources.ui_handles.mission_select = mission_select_handles;
+    cobalt_world.resources.ui_handles.pause = pause_handles;
+    cobalt_world.resources.ui_handles.hud = hud_handles;
+    cobalt_world.resources.ui_handles.editor = editor_handles;
+    cobalt_world.resources.ui_handles.cutscene = cutscene_handles;
 
-    enter(boomer_world, world, Screen::Title);
+    enter(cobalt_world, world, Screen::Title);
 }
 
-pub fn enter(boomer_world: &mut BoomerWorld, world: &mut World, screen: Screen) {
-    let config = screen_config(&boomer_world.resources.ui_handles, screen);
+pub fn enter(cobalt_world: &mut CobaltWorld, world: &mut World, screen: Screen) {
+    let config = screen_config(&cobalt_world.resources.ui_handles, screen);
 
-    boomer_world.resources.screen.current = screen;
-    apply_visibility(boomer_world, world);
+    cobalt_world.resources.screen.current = screen;
+    apply_visibility(cobalt_world, world);
 
     world.resources.physics.enabled = config.physics_enabled;
     set_cursor_locked(world, config.cursor_locked);
@@ -120,9 +120,9 @@ fn screen_config(handles: &UiHandles, screen: Screen) -> ScreenConfig {
     }
 }
 
-fn apply_visibility(boomer_world: &BoomerWorld, world: &mut World) {
-    let handles = &boomer_world.resources.ui_handles;
-    let screen = boomer_world.resources.screen.current;
+fn apply_visibility(cobalt_world: &CobaltWorld, world: &mut World) {
+    let handles = &cobalt_world.resources.ui_handles;
+    let screen = cobalt_world.resources.screen.current;
     ui_set_visible(world, handles.title.root, matches!(screen, Screen::Title));
     ui_set_visible(
         world,

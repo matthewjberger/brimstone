@@ -1,5 +1,5 @@
 use crate::art;
-use crate::ecs::{BoomerWorld, ENEMY, ENGINE_ENTITY, Enemy, EnemyKind, EnemyState, EngineEntity};
+use crate::ecs::{CobaltWorld, ENEMY, ENGINE_ENTITY, Enemy, EnemyKind, EnemyState, EngineEntity};
 use crate::systems::common::random_range;
 use crate::systems::world::{audio, billboard, fx, game, pickups, player, projectiles};
 use crate::tuning;
@@ -183,11 +183,11 @@ fn is_flying(behavior: Behavior) -> bool {
 /// Resolve the registered material name for an enemy's current visual state.
 fn enemy_material(key: &str, elite: bool, hurt: bool, frame: usize) -> String {
     if hurt {
-        format!("boom_mat_{key}_hurt")
+        format!("cobalt_mat_{key}_hurt")
     } else if elite {
-        format!("boom_mat_{key}_f{frame}_e")
+        format!("cobalt_mat_{key}_f{frame}_e")
     } else {
-        format!("boom_mat_{key}_f{frame}")
+        format!("cobalt_mat_{key}_f{frame}")
     }
 }
 
@@ -207,7 +207,7 @@ pub fn center(enemy: &Enemy) -> Vec3 {
 }
 
 pub fn spawn(
-    boomer_world: &mut BoomerWorld,
+    cobalt_world: &mut CobaltWorld,
     world: &mut World,
     kind: EnemyKind,
     elite: bool,
@@ -226,8 +226,8 @@ pub fn spawn(
         spawn_position,
         body_scale(&s, elite, boss),
     );
-    let strafe_roll = random_range(&mut boomer_world.resources.game.random_state, 0.0, 1.0);
-    let fire_jitter = random_range(&mut boomer_world.resources.game.random_state, 0.4, 1.0)
+    let strafe_roll = random_range(&mut cobalt_world.resources.game.random_state, 0.0, 1.0);
+    let fire_jitter = random_range(&mut cobalt_world.resources.game.random_state, 0.4, 1.0)
         * tuning::CASTER_FIRE_COOLDOWN;
     let mut health = s.health;
     if elite {
@@ -236,15 +236,15 @@ pub fn spawn(
     if boss {
         health *= tuning::BOSS_HEALTH_MULT;
     }
-    health *= boomer_world.resources.settings.difficulty.enemy_health();
-    let game_entity = boomer_world.spawn_entities(ENEMY | ENGINE_ENTITY, 1)[0];
-    boomer_world.set_engine_entity(game_entity, EngineEntity(engine));
+    health *= cobalt_world.resources.settings.difficulty.enemy_health();
+    let game_entity = cobalt_world.spawn_entities(ENEMY | ENGINE_ENTITY, 1)[0];
+    cobalt_world.set_engine_entity(game_entity, EngineEntity(engine));
     if boss {
-        boomer_world.resources.game.boss_entity = Some(game_entity);
-        boomer_world.resources.game.boss_max_health = health;
-        audio::play(boomer_world, world, audio::BOSS, 0.9);
+        cobalt_world.resources.game.boss_entity = Some(game_entity);
+        cobalt_world.resources.game.boss_max_health = health;
+        audio::play(cobalt_world, world, audio::BOSS, 0.9);
     }
-    boomer_world.set_enemy(
+    cobalt_world.set_enemy(
         game_entity,
         Enemy {
             kind,
@@ -265,7 +265,7 @@ pub fn spawn(
         },
     );
     fx::hit(
-        boomer_world,
+        cobalt_world,
         world,
         spawn_position + vec3(0.0, 1.0, 0.0),
         s.color,
@@ -273,14 +273,14 @@ pub fn spawn(
 }
 
 pub fn damage(
-    boomer_world: &mut BoomerWorld,
+    cobalt_world: &mut CobaltWorld,
     world: &mut World,
     game_entity: Entity,
     amount: f32,
     point: Vec3,
     knockback: Vec3,
 ) {
-    let Some(enemy) = boomer_world.get_enemy(game_entity) else {
+    let Some(enemy) = cobalt_world.get_enemy(game_entity) else {
         return;
     };
     if enemy.state == EnemyState::Dying {
@@ -300,13 +300,13 @@ pub fn damage(
         updated.death_timer = tuning::ENEMY_DEATH_TIME;
     }
     let position = updated.position;
-    boomer_world.set_enemy(game_entity, updated);
+    cobalt_world.set_enemy(game_entity, updated);
 
-    fx::hit(boomer_world, world, point, s.color);
+    fx::hit(cobalt_world, world, point, s.color);
     if dead {
         let count = if boss { 320 } else { s.death_particles };
         fx::death(
-            boomer_world,
+            cobalt_world,
             world,
             position + vec3(0.0, tuning::ENEMY_CENTER_HEIGHT, 0.0),
             s.color,
@@ -319,34 +319,34 @@ pub fn damage(
         if boss {
             score *= tuning::BOSS_SCORE_MULT;
         }
-        game::award(boomer_world, score);
+        game::award(cobalt_world, score);
         if boss {
-            boomer_world.resources.game.boss_entity = None;
-            boomer_world.resources.game.shake += 1.2;
-            boomer_world.resources.game.hitstop = boomer_world.resources.game.hitstop.max(0.12);
+            cobalt_world.resources.game.boss_entity = None;
+            cobalt_world.resources.game.shake += 1.2;
+            cobalt_world.resources.game.hitstop = cobalt_world.resources.game.hitstop.max(0.12);
         } else if elite || matches!(kind, EnemyKind::Brute) {
-            boomer_world.resources.game.shake += 0.25;
-            boomer_world.resources.game.hitstop = boomer_world.resources.game.hitstop.max(0.04);
+            cobalt_world.resources.game.shake += 0.25;
+            cobalt_world.resources.game.hitstop = cobalt_world.resources.game.hitstop.max(0.04);
         }
-        audio::play(boomer_world, world, audio::ENEMY_DEATH, 1.0);
-        pickups::maybe_drop(boomer_world, world, position);
+        audio::play(cobalt_world, world, audio::ENEMY_DEATH, 1.0);
+        pickups::maybe_drop(cobalt_world, world, position);
     } else {
-        audio::play(boomer_world, world, audio::ENEMY_HURT, 0.4);
+        audio::play(cobalt_world, world, audio::ENEMY_HURT, 0.4);
     }
 }
 
-pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
+pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    let player_center = player::position(boomer_world, world);
+    let player_center = player::position(cobalt_world, world);
     let player_ground = vec3(player_center.x, 0.0, player_center.z);
-    let bound_x = (boomer_world.resources.level.half_x - 1.5).max(2.0);
-    let bound_z = (boomer_world.resources.level.half_z - 1.5).max(2.0);
+    let bound_x = (cobalt_world.resources.level.half_x - 1.5).max(2.0);
+    let bound_z = (cobalt_world.resources.level.half_z - 1.5).max(2.0);
 
-    let mut snapshots: Vec<(Entity, Entity, Enemy)> = boomer_world
+    let mut snapshots: Vec<(Entity, Entity, Enemy)> = cobalt_world
         .query_entities(ENEMY | ENGINE_ENTITY)
         .filter_map(|game_entity| {
-            let engine = boomer_world.get_engine_entity(game_entity)?.0;
-            let enemy = *boomer_world.get_enemy(game_entity)?;
+            let engine = cobalt_world.get_engine_entity(game_entity)?.0;
+            let enemy = *cobalt_world.get_enemy(game_entity)?;
             Some((game_entity, engine, enemy))
         })
         .collect();
@@ -409,14 +409,14 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
     separate(&mut snapshots, bound_x, bound_z);
 
     if effects.melee_damage > 0.0 {
-        game::damage_player(boomer_world, world, effects.melee_damage);
+        game::damage_player(cobalt_world, world, effects.melee_damage);
     }
     for (origin, target, damage) in effects.fireballs {
-        projectiles::spawn(boomer_world, world, origin, target, damage);
-        audio::play(boomer_world, world, audio::FIREBALL, 0.32);
+        projectiles::spawn(cobalt_world, world, origin, target, damage);
+        audio::play(cobalt_world, world, audio::FIREBALL, 0.32);
     }
     for (position, color) in effects.telegraphs {
-        fx::hit(boomer_world, world, position, color);
+        fx::hit(cobalt_world, world, position, color);
     }
 
     for (game_entity, engine, enemy) in &snapshots {
@@ -455,17 +455,17 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
                 *engine,
                 vec3(base.x * windup_scale, base.y * windup_scale, 1.0),
             );
-            if let Some(slot) = boomer_world.get_enemy_mut(*game_entity) {
+            if let Some(slot) = cobalt_world.get_enemy_mut(*game_entity) {
                 *slot = next;
             }
             continue;
         }
-        if let Some(slot) = boomer_world.get_enemy_mut(*game_entity) {
+        if let Some(slot) = cobalt_world.get_enemy_mut(*game_entity) {
             *slot = *enemy;
         }
     }
 
-    remove_dead(boomer_world, world);
+    remove_dead(cobalt_world, world);
 }
 
 /// Per-frame inputs shared by every behaviour: where the player is, the ground
@@ -761,13 +761,13 @@ fn separate(snapshots: &mut [(Entity, Entity, Enemy)], bound_x: f32, bound_z: f3
     }
 }
 
-fn remove_dead(boomer_world: &mut BoomerWorld, world: &mut World) {
-    let dead: Vec<(Entity, Entity)> = boomer_world
+fn remove_dead(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    let dead: Vec<(Entity, Entity)> = cobalt_world
         .query_entities(ENEMY | ENGINE_ENTITY)
         .filter_map(|game_entity| {
-            let enemy = boomer_world.get_enemy(game_entity)?;
+            let enemy = cobalt_world.get_enemy(game_entity)?;
             if enemy.state == EnemyState::Dying && enemy.death_timer <= 0.0 {
-                let engine = boomer_world.get_engine_entity(game_entity)?.0;
+                let engine = cobalt_world.get_engine_entity(game_entity)?.0;
                 Some((game_entity, engine))
             } else {
                 None
@@ -776,15 +776,15 @@ fn remove_dead(boomer_world: &mut BoomerWorld, world: &mut World) {
         .collect();
     for (game_entity, engine) in dead {
         despawn_recursive_immediate(world, engine);
-        boomer_world.despawn_entities(&[game_entity]);
+        cobalt_world.despawn_entities(&[game_entity]);
     }
 }
 
-pub fn despawn_all(boomer_world: &mut BoomerWorld, world: &mut World) {
-    let engines: Vec<Entity> = boomer_world
+pub fn despawn_all(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    let engines: Vec<Entity> = cobalt_world
         .query_entities(ENEMY | ENGINE_ENTITY)
         .filter_map(|game_entity| {
-            boomer_world
+            cobalt_world
                 .get_engine_entity(game_entity)
                 .map(|link| link.0)
         })
@@ -792,12 +792,12 @@ pub fn despawn_all(boomer_world: &mut BoomerWorld, world: &mut World) {
     for engine in engines {
         despawn_recursive_immediate(world, engine);
     }
-    let game_entities: Vec<Entity> = boomer_world.query_entities(ENEMY).collect();
+    let game_entities: Vec<Entity> = cobalt_world.query_entities(ENEMY).collect();
     if !game_entities.is_empty() {
-        boomer_world.despawn_entities(&game_entities);
+        cobalt_world.despawn_entities(&game_entities);
     }
 }
 
-pub fn total_count(boomer_world: &BoomerWorld) -> usize {
-    boomer_world.query_entities(ENEMY).count()
+pub fn total_count(cobalt_world: &CobaltWorld) -> usize {
+    cobalt_world.query_entities(ENEMY).count()
 }

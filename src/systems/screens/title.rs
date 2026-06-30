@@ -1,4 +1,4 @@
-use crate::ecs::{BoomerWorld, Screen, TitleHandles};
+use crate::ecs::{CobaltWorld, Screen, TitleHandles};
 use crate::systems::lifecycle;
 use crate::systems::screens::menu_button;
 use crate::theme::*;
@@ -92,15 +92,15 @@ pub fn build(tree: &mut UiTreeBuilder) -> TitleHandles {
     }
 }
 
-pub fn handle_input(boomer_world: &mut BoomerWorld, world: &mut World) {
-    if !matches!(boomer_world.resources.screen.current, Screen::Title) {
+pub fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    if !matches!(cobalt_world.resources.screen.current, Screen::Title) {
         return;
     }
-    let story = boomer_world.resources.ui_handles.title.story_button;
-    let play = boomer_world.resources.ui_handles.title.play_button;
-    let level_select = boomer_world.resources.ui_handles.title.level_select_button;
-    let editor = boomer_world.resources.ui_handles.title.editor_button;
-    let quit = boomer_world.resources.ui_handles.title.quit_button;
+    let story = cobalt_world.resources.ui_handles.title.story_button;
+    let play = cobalt_world.resources.ui_handles.title.play_button;
+    let level_select = cobalt_world.resources.ui_handles.title.level_select_button;
+    let editor = cobalt_world.resources.ui_handles.title.editor_button;
+    let quit = cobalt_world.resources.ui_handles.title.quit_button;
     let mut clicked_story = false;
     let mut clicked_play = false;
     let mut clicked_level_select = false;
@@ -120,13 +120,13 @@ pub fn handle_input(boomer_world: &mut BoomerWorld, world: &mut World) {
         }
     }
     if clicked_story {
-        crate::systems::story::open_select(boomer_world, world);
+        crate::systems::story::open_select(cobalt_world, world);
     } else if clicked_play {
-        lifecycle::enter(boomer_world, world, Screen::InGame);
+        lifecycle::enter(cobalt_world, world, Screen::InGame);
     } else if clicked_level_select {
-        lifecycle::enter(boomer_world, world, Screen::LevelSelect);
+        lifecycle::enter(cobalt_world, world, Screen::LevelSelect);
     } else if clicked_editor {
-        crate::systems::editor::open(boomer_world, world);
+        crate::systems::editor::open(cobalt_world, world);
     } else if clicked_quit {
         world.resources.window.should_exit = true;
     }

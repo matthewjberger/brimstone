@@ -1,4 +1,4 @@
-use crate::ecs::BoomerWorld;
+use crate::ecs::CobaltWorld;
 use nalgebra_glm::{Vec3, Vec4, vec4};
 use nightshade::ecs::lines::components::{Line, Lines};
 use nightshade::ecs::particles::components::{
@@ -11,8 +11,8 @@ const BURST_TTL: f32 = 1.6;
 const EXPLOSION_TTL: f32 = 3.8;
 const TRACER_TTL: f32 = 0.05;
 
-fn track(boomer_world: &mut BoomerWorld, entity: Entity, ttl: f32) {
-    boomer_world.resources.transient.items.push((entity, ttl));
+fn track(cobalt_world: &mut CobaltWorld, entity: Entity, ttl: f32) {
+    cobalt_world.resources.transient.items.push((entity, ttl));
 }
 
 fn gradient(color: Vec3) -> ColorGradient {
@@ -26,7 +26,7 @@ fn gradient(color: Vec3) -> ColorGradient {
     }
 }
 
-pub fn muzzle(boomer_world: &mut BoomerWorld, world: &mut World, position: Vec3, forward: Vec3) {
+pub fn muzzle(cobalt_world: &mut CobaltWorld, world: &mut World, position: Vec3, forward: Vec3) {
     let emitter = ParticleEmitter {
         emitter_type: EmitterType::Sparks,
         shape: EmitterShape::Point,
@@ -50,10 +50,10 @@ pub fn muzzle(boomer_world: &mut BoomerWorld, world: &mut World, position: Vec3,
     };
     let entity = spawn_entities(world, NAME | PARTICLE_EMITTER, 1)[0];
     world.core.set_particle_emitter(entity, emitter);
-    track(boomer_world, entity, 0.5);
+    track(cobalt_world, entity, 0.5);
 }
 
-pub fn hit(boomer_world: &mut BoomerWorld, world: &mut World, position: Vec3, color: Vec3) {
+pub fn hit(cobalt_world: &mut CobaltWorld, world: &mut World, position: Vec3, color: Vec3) {
     let emitter = ParticleEmitter {
         emitter_type: EmitterType::Sparks,
         shape: EmitterShape::Sphere { radius: 0.18 },
@@ -77,11 +77,11 @@ pub fn hit(boomer_world: &mut BoomerWorld, world: &mut World, position: Vec3, co
     };
     let entity = spawn_entities(world, NAME | PARTICLE_EMITTER, 1)[0];
     world.core.set_particle_emitter(entity, emitter);
-    track(boomer_world, entity, BURST_TTL);
+    track(cobalt_world, entity, BURST_TTL);
 }
 
 pub fn death(
-    boomer_world: &mut BoomerWorld,
+    cobalt_world: &mut CobaltWorld,
     world: &mut World,
     position: Vec3,
     color: Vec3,
@@ -92,11 +92,11 @@ pub fn death(
         entity,
         ParticleEmitter::firework_explosion(position, color, count),
     );
-    track(boomer_world, entity, EXPLOSION_TTL);
+    track(cobalt_world, entity, EXPLOSION_TTL);
 }
 
 pub fn tracer(
-    boomer_world: &mut BoomerWorld,
+    cobalt_world: &mut CobaltWorld,
     world: &mut World,
     start: Vec3,
     end: Vec3,
@@ -112,16 +112,16 @@ pub fn tracer(
     world
         .core
         .set_global_transform(entity, GlobalTransform::default());
-    track(boomer_world, entity, TRACER_TTL);
+    track(cobalt_world, entity, TRACER_TTL);
 }
 
-pub fn tick(boomer_world: &mut BoomerWorld, world: &mut World) {
+pub fn tick(cobalt_world: &mut CobaltWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
     let mut index = 0;
-    while index < boomer_world.resources.transient.items.len() {
-        boomer_world.resources.transient.items[index].1 -= delta;
-        if boomer_world.resources.transient.items[index].1 <= 0.0 {
-            let (entity, _) = boomer_world.resources.transient.items.swap_remove(index);
+    while index < cobalt_world.resources.transient.items.len() {
+        cobalt_world.resources.transient.items[index].1 -= delta;
+        if cobalt_world.resources.transient.items[index].1 <= 0.0 {
+            let (entity, _) = cobalt_world.resources.transient.items.swap_remove(index);
             queue_ecs_command(world, EcsCommand::DespawnRecursive { entity });
         } else {
             index += 1;

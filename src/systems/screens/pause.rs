@@ -1,4 +1,4 @@
-use crate::ecs::{BoomerWorld, PauseHandles, Screen};
+use crate::ecs::{CobaltWorld, PauseHandles, Screen};
 use crate::systems::lifecycle;
 use crate::systems::screens::menu_button;
 use crate::systems::world::game;
@@ -99,17 +99,17 @@ pub fn build(tree: &mut UiTreeBuilder) -> PauseHandles {
     }
 }
 
-pub fn handle_input(boomer_world: &mut BoomerWorld, world: &mut World) {
-    if !matches!(boomer_world.resources.screen.current, Screen::Paused) {
+pub fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    if !matches!(cobalt_world.resources.screen.current, Screen::Paused) {
         return;
     }
-    let handles = boomer_world.resources.ui_handles.pause;
+    let handles = cobalt_world.resources.ui_handles.pause;
     ui_set_text(
         world,
         handles.difficulty_label,
         &format!(
             "DIFFICULTY: {}",
-            boomer_world.resources.settings.difficulty.label()
+            cobalt_world.resources.settings.difficulty.label()
         ),
     );
 
@@ -137,18 +137,18 @@ pub fn handle_input(boomer_world: &mut BoomerWorld, world: &mut World) {
         }
     }
     if clicked_difficulty {
-        let next = boomer_world.resources.settings.difficulty.next();
-        boomer_world.resources.settings.difficulty = next;
+        let next = cobalt_world.resources.settings.difficulty.next();
+        cobalt_world.resources.settings.difficulty = next;
         crate::settings::save(next);
     }
     if clicked_resume {
-        lifecycle::enter(boomer_world, world, Screen::InGame);
+        lifecycle::enter(cobalt_world, world, Screen::InGame);
     } else if clicked_restart {
-        game::restart_current(boomer_world, world);
-        lifecycle::enter(boomer_world, world, Screen::InGame);
+        game::restart_current(cobalt_world, world);
+        lifecycle::enter(cobalt_world, world, Screen::InGame);
     } else if clicked_main_menu {
-        game::start_at(boomer_world, world, 0);
-        lifecycle::enter(boomer_world, world, Screen::Title);
+        game::start_at(cobalt_world, world, 0);
+        lifecycle::enter(cobalt_world, world, Screen::Title);
     } else if clicked_quit {
         world.resources.window.should_exit = true;
     }

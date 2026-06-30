@@ -3,7 +3,7 @@
 //! save to and load from a file on disk so they persist between sessions.
 
 use crate::content::{self, BlockKind, LevelData};
-use crate::ecs::{BoomerWorld, EditorHandles, Screen};
+use crate::ecs::{CobaltWorld, EditorHandles, Screen};
 use crate::systems::lifecycle;
 use crate::systems::world::level::material_for;
 use crate::systems::world::{game, level, player, textures};
@@ -14,7 +14,7 @@ use nightshade::ecs::physics::commands::spawn_static_physics_cube_with_material;
 use nightshade::ecs::world::commands::{spawn_light_entity, spawn_mesh_at};
 use nightshade::prelude::*;
 
-const SAVE_PATH: &str = "boom_custom_level.txt";
+const SAVE_PATH: &str = "cobalt_custom_level.txt";
 const FLY_SPEED: f32 = 16.0;
 const GRID: f32 = 1.0;
 const VANTAGE: Vec3 = Vec3::new(0.0, 9.0, 20.0);
@@ -33,40 +33,40 @@ pub fn brush_size(kind: BlockKind) -> Vec3 {
 
 /// Open the editor: tear down whatever level is showing, load the saved draft,
 /// and stand the camera up at the vantage point.
-pub fn open(boomer_world: &mut BoomerWorld, world: &mut World) {
-    game::teardown_world(boomer_world, world);
-    let empty = boomer_world.resources.editor.data.blocks.is_empty()
-        && boomer_world.resources.editor.data.spawn_points.is_empty();
+pub fn open(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    game::teardown_world(cobalt_world, world);
+    let empty = cobalt_world.resources.editor.data.blocks.is_empty()
+        && cobalt_world.resources.editor.data.spawn_points.is_empty();
     if empty {
         if let Some(data) = load_from_disk() {
-            boomer_world.resources.editor.data = data;
+            cobalt_world.resources.editor.data = data;
         }
-        boomer_world.resources.editor.brush = BlockKind::Platform;
-        boomer_world.resources.editor.place_height = 0.0;
+        cobalt_world.resources.editor.brush = BlockKind::Platform;
+        cobalt_world.resources.editor.place_height = 0.0;
     }
-    boomer_world.resources.editor.active = true;
-    rebuild_scene(boomer_world, world);
-    player::teleport(boomer_world, world, VANTAGE);
-    lifecycle::enter(boomer_world, world, Screen::Editor);
-    status(boomer_world, "EDITOR");
+    cobalt_world.resources.editor.active = true;
+    rebuild_scene(cobalt_world, world);
+    player::teleport(cobalt_world, world, VANTAGE);
+    lifecycle::enter(cobalt_world, world, Screen::Editor);
+    status(cobalt_world, "EDITOR");
 }
 
 /// Despawn every preview entity. Called when leaving the editor or play-testing.
-pub fn teardown(boomer_world: &mut BoomerWorld, world: &mut World) {
-    for entity in boomer_world.resources.editor.block_entities.drain(..) {
+pub fn teardown(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    for entity in cobalt_world.resources.editor.block_entities.drain(..) {
         despawn_recursive_immediate(world, entity);
     }
-    for entity in boomer_world.resources.editor.markers.drain(..) {
+    for entity in cobalt_world.resources.editor.markers.drain(..) {
         despawn_recursive_immediate(world, entity);
     }
-    if let Some(ghost) = boomer_world.resources.editor.ghost.take() {
+    if let Some(ghost) = cobalt_world.resources.editor.ghost.take() {
         despawn_recursive_immediate(world, ghost);
     }
 }
 
-fn rebuild_scene(boomer_world: &mut BoomerWorld, world: &mut World) {
-    teardown(boomer_world, world);
-    let data = boomer_world.resources.editor.data.clone();
+fn rebuild_scene(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    teardown(cobalt_world, world);
+    let data = cobalt_world.resources.editor.data.clone();
 
     level::apply_environment(
         world,
@@ -78,22 +78,22 @@ fn rebuild_scene(boomer_world: &mut BoomerWorld, world: &mut World) {
     for block in &data.blocks {
         blocks.push(spawn_block_entity(world, block));
     }
-    boomer_world.resources.editor.block_entities = blocks;
+    cobalt_world.resources.editor.block_entities = blocks;
 
-    rebuild_markers(boomer_world, world);
+    rebuild_markers(cobalt_world, world);
 
     let ghost = spawn_mesh_at(world, "Cube", VANTAGE, vec3(1.0, 1.0, 1.0));
     world
         .core
         .set_material_ref(ghost, MaterialRef::new(textures::MAT_GHOST.to_string()));
-    boomer_world.resources.editor.ghost = Some(ghost);
+    cobalt_world.resources.editor.ghost = Some(ghost);
 }
 
-fn rebuild_markers(boomer_world: &mut BoomerWorld, world: &mut World) {
-    for entity in boomer_world.resources.editor.markers.drain(..) {
+fn rebuild_markers(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    for entity in cobalt_world.resources.editor.markers.drain(..) {
         despawn_recursive_immediate(world, entity);
     }
-    let data = boomer_world.resources.editor.data.clone();
+    let data = cobalt_world.resources.editor.data.clone();
     let mut markers: Vec<Entity> = Vec::new();
 
     let span = 38.0;
@@ -155,22 +155,22 @@ fn rebuild_markers(boomer_world: &mut BoomerWorld, world: &mut World) {
         textures::MAT_EXIT,
     ));
 
-    boomer_world.resources.editor.markers = markers;
+    cobalt_world.resources.editor.markers = markers;
 }
 
-pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
+pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    boomer_world.resources.editor.status = (boomer_world.resources.editor.status - delta).max(0.0);
+    cobalt_world.resources.editor.status = (cobalt_world.resources.editor.status - delta).max(0.0);
 
     first_person_camera_look_system(world);
-    fly(boomer_world, world, delta);
+    fly(cobalt_world, world, delta);
 
-    let cursor = cursor_on_grid(boomer_world, world);
-    boomer_world.resources.editor.cursor = cursor;
-    update_ghost(boomer_world, world, cursor);
+    let cursor = cursor_on_grid(cobalt_world, world);
+    cobalt_world.resources.editor.cursor = cursor;
+    update_ghost(cobalt_world, world, cursor);
 
-    handle_input(boomer_world, world, cursor);
-    refresh_status_text(boomer_world, world);
+    handle_input(cobalt_world, world, cursor);
+    refresh_status_text(cobalt_world, world);
 }
 
 const CONTROLS: &str = "LEVEL EDITOR\nWASD + E/Q fly, mouse look\n1-6 brush   R/F build height\nSPACE place block   X delete\nZ player start   C exit gate\nV jump pad   B enemy spawn   G remove marker\n+/- enemy count   K save   L load\nENTER play-test   ESC title";
@@ -206,8 +206,8 @@ pub fn build_ui(tree: &mut UiTreeBuilder) -> EditorHandles {
     EditorHandles { root, status }
 }
 
-fn refresh_status_text(boomer_world: &mut BoomerWorld, world: &mut World) {
-    let editor = &boomer_world.resources.editor;
+fn refresh_status_text(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    let editor = &cobalt_world.resources.editor;
     let text = if editor.status > 0.0 {
         format!(
             "{}   |   BRUSH {}   H {:.0}",
@@ -224,12 +224,12 @@ fn refresh_status_text(boomer_world: &mut BoomerWorld, world: &mut World) {
             editor.data.spawn_points.len()
         )
     };
-    let status = boomer_world.resources.ui_handles.editor.status;
+    let status = cobalt_world.resources.ui_handles.editor.status;
     ui_set_text(world, status, &text);
 }
 
-fn fly(boomer_world: &mut BoomerWorld, world: &mut World, delta: f32) {
-    let Some(camera) = boomer_world.resources.player.camera_entity else {
+fn fly(cobalt_world: &mut CobaltWorld, world: &mut World, delta: f32) {
+    let Some(camera) = cobalt_world.resources.player.camera_entity else {
         return;
     };
     let Some(transform) = world.core.get_global_transform(camera) else {
@@ -261,7 +261,7 @@ fn fly(boomer_world: &mut BoomerWorld, world: &mut World, delta: f32) {
         return;
     }
     let step = move_dir.normalize() * FLY_SPEED * delta;
-    let Some(player) = boomer_world.resources.player.player_entity else {
+    let Some(player) = cobalt_world.resources.player.player_entity else {
         return;
     };
     if let Some(local) = world.core.get_local_transform_mut(player) {
@@ -282,9 +282,9 @@ fn fly(boomer_world: &mut BoomerWorld, world: &mut World, delta: f32) {
     }
 }
 
-fn cursor_on_grid(boomer_world: &BoomerWorld, world: &World) -> Vec3 {
-    let plane_y = boomer_world.resources.editor.place_height;
-    let Some(camera) = boomer_world.resources.player.camera_entity else {
+fn cursor_on_grid(cobalt_world: &CobaltWorld, world: &World) -> Vec3 {
+    let plane_y = cobalt_world.resources.editor.place_height;
+    let Some(camera) = cobalt_world.resources.player.camera_entity else {
         return vec3(0.0, plane_y, 0.0);
     };
     let Some(transform) = world.core.get_global_transform(camera) else {
@@ -310,11 +310,11 @@ fn cursor_on_grid(boomer_world: &BoomerWorld, world: &World) -> Vec3 {
     )
 }
 
-fn update_ghost(boomer_world: &mut BoomerWorld, world: &mut World, cursor: Vec3) {
-    let Some(ghost) = boomer_world.resources.editor.ghost else {
+fn update_ghost(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3) {
+    let Some(ghost) = cobalt_world.resources.editor.ghost else {
         return;
     };
-    let size = brush_size(boomer_world.resources.editor.brush);
+    let size = brush_size(cobalt_world.resources.editor.brush);
     let center = cursor + vec3(0.0, size.y * 0.5, 0.0);
     if let Some(local) = world.core.get_local_transform_mut(ghost) {
         local.translation = center;
@@ -323,7 +323,7 @@ fn update_ghost(boomer_world: &mut BoomerWorld, world: &mut World, cursor: Vec3)
     mark_local_transform_dirty(world, ghost);
 }
 
-fn handle_input(boomer_world: &mut BoomerWorld, world: &mut World, cursor: Vec3) {
+fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3) {
     let keyboard = &world.resources.input.keyboard;
     let place = keyboard.just_pressed(KeyCode::Space);
     let brush_keys = [
@@ -352,96 +352,96 @@ fn handle_input(boomer_world: &mut BoomerWorld, world: &mut World, cursor: Vec3)
     let play_test = keyboard.just_pressed(KeyCode::Enter);
 
     if let Some(index) = brush_index {
-        boomer_world.resources.editor.brush = BlockKind::ALL[index];
-        status(boomer_world, BlockKind::ALL[index].label());
+        cobalt_world.resources.editor.brush = BlockKind::ALL[index];
+        status(cobalt_world, BlockKind::ALL[index].label());
     }
     if raise {
-        boomer_world.resources.editor.place_height =
-            (boomer_world.resources.editor.place_height + GRID).min(16.0);
-        status(boomer_world, "RAISE");
+        cobalt_world.resources.editor.place_height =
+            (cobalt_world.resources.editor.place_height + GRID).min(16.0);
+        status(cobalt_world, "RAISE");
     }
     if lower {
-        boomer_world.resources.editor.place_height =
-            (boomer_world.resources.editor.place_height - GRID).max(0.0);
-        status(boomer_world, "LOWER");
+        cobalt_world.resources.editor.place_height =
+            (cobalt_world.resources.editor.place_height - GRID).max(0.0);
+        status(cobalt_world, "LOWER");
     }
     if place {
-        place_block(boomer_world, world, cursor);
+        place_block(cobalt_world, world, cursor);
     }
     if delete {
-        delete_block(boomer_world, world, cursor);
+        delete_block(cobalt_world, world, cursor);
     }
     if set_spawn {
-        boomer_world.resources.editor.data.spawn = [cursor.x, 1.2 + cursor.y, cursor.z];
-        rebuild_markers(boomer_world, world);
-        status(boomer_world, "PLAYER START");
+        cobalt_world.resources.editor.data.spawn = [cursor.x, 1.2 + cursor.y, cursor.z];
+        rebuild_markers(cobalt_world, world);
+        status(cobalt_world, "PLAYER START");
     }
     if set_exit {
-        boomer_world.resources.editor.data.exit = [cursor.x, cursor.z];
-        rebuild_markers(boomer_world, world);
-        status(boomer_world, "EXIT");
+        cobalt_world.resources.editor.data.exit = [cursor.x, cursor.z];
+        rebuild_markers(cobalt_world, world);
+        status(cobalt_world, "EXIT");
     }
     if add_pad {
-        boomer_world
+        cobalt_world
             .resources
             .editor
             .data
             .pads
             .push((cursor.x, cursor.z));
-        rebuild_markers(boomer_world, world);
-        status(boomer_world, "PAD");
+        rebuild_markers(cobalt_world, world);
+        status(cobalt_world, "PAD");
     }
     if add_enemy {
-        boomer_world
+        cobalt_world
             .resources
             .editor
             .data
             .spawn_points
             .push((cursor.x, cursor.z));
-        rebuild_markers(boomer_world, world);
-        status(boomer_world, "ENEMY SPAWN");
+        rebuild_markers(cobalt_world, world);
+        status(cobalt_world, "ENEMY SPAWN");
     }
     if remove_marker {
-        remove_nearest_marker(boomer_world, world, cursor);
+        remove_nearest_marker(cobalt_world, world, cursor);
     }
     if more {
-        let roster = &mut boomer_world.resources.editor.data.roster;
+        let roster = &mut cobalt_world.resources.editor.data.roster;
         roster.imps += 1;
         roster.swarmers += 1;
-        status(boomer_world, "MORE ENEMIES");
+        status(cobalt_world, "MORE ENEMIES");
     }
     if fewer {
-        let roster = &mut boomer_world.resources.editor.data.roster;
+        let roster = &mut cobalt_world.resources.editor.data.roster;
         roster.imps = roster.imps.saturating_sub(1);
         roster.swarmers = roster.swarmers.saturating_sub(1);
-        status(boomer_world, "FEWER ENEMIES");
+        status(cobalt_world, "FEWER ENEMIES");
     }
     if save {
-        save_to_disk(&boomer_world.resources.editor.data);
-        status(boomer_world, "SAVED");
+        save_to_disk(&cobalt_world.resources.editor.data);
+        status(cobalt_world, "SAVED");
     }
     if load && let Some(data) = load_from_disk() {
-        boomer_world.resources.editor.data = data;
-        rebuild_scene(boomer_world, world);
-        status(boomer_world, "LOADED");
+        cobalt_world.resources.editor.data = data;
+        rebuild_scene(cobalt_world, world);
+        status(cobalt_world, "LOADED");
     }
     if play_test {
-        play(boomer_world, world);
+        play(cobalt_world, world);
     }
 }
 
-fn place_block(boomer_world: &mut BoomerWorld, world: &mut World, cursor: Vec3) {
-    let kind = boomer_world.resources.editor.brush;
+fn place_block(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3) {
+    let kind = cobalt_world.resources.editor.brush;
     let size = brush_size(kind);
     let center = cursor + vec3(0.0, size.y * 0.5, 0.0);
     let spec = (center.x, center.y, center.z, size.x, size.y, size.z, kind);
     let entity = spawn_block_entity(world, &spec);
-    boomer_world.resources.editor.data.blocks.push(spec);
-    boomer_world.resources.editor.block_entities.push(entity);
+    cobalt_world.resources.editor.data.blocks.push(spec);
+    cobalt_world.resources.editor.block_entities.push(entity);
 }
 
-fn delete_block(boomer_world: &mut BoomerWorld, world: &mut World, cursor: Vec3) {
-    let blocks = &boomer_world.resources.editor.data.blocks;
+fn delete_block(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3) {
+    let blocks = &cobalt_world.resources.editor.data.blocks;
     let mut best: Option<(usize, f32)> = None;
     for (index, block) in blocks.iter().enumerate() {
         let center = vec3(block.0, block.1, block.2);
@@ -451,32 +451,32 @@ fn delete_block(boomer_world: &mut BoomerWorld, world: &mut World, cursor: Vec3)
         }
     }
     if let Some((index, _)) = best {
-        boomer_world.resources.editor.data.blocks.remove(index);
-        let entity = boomer_world.resources.editor.block_entities.remove(index);
+        cobalt_world.resources.editor.data.blocks.remove(index);
+        let entity = cobalt_world.resources.editor.block_entities.remove(index);
         despawn_recursive_immediate(world, entity);
-        status(boomer_world, "DELETED");
+        status(cobalt_world, "DELETED");
     }
 }
 
-fn remove_nearest_marker(boomer_world: &mut BoomerWorld, world: &mut World, cursor: Vec3) {
+fn remove_nearest_marker(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3) {
     let mut removed = false;
     {
-        let pads = &mut boomer_world.resources.editor.data.pads;
+        let pads = &mut cobalt_world.resources.editor.data.pads;
         if let Some(index) = nearest(pads, cursor) {
             pads.remove(index);
             removed = true;
         }
     }
     if !removed {
-        let spawns = &mut boomer_world.resources.editor.data.spawn_points;
+        let spawns = &mut cobalt_world.resources.editor.data.spawn_points;
         if let Some(index) = nearest(spawns, cursor) {
             spawns.remove(index);
             removed = true;
         }
     }
     if removed {
-        rebuild_markers(boomer_world, world);
-        status(boomer_world, "REMOVED MARKER");
+        rebuild_markers(cobalt_world, world);
+        status(cobalt_world, "REMOVED MARKER");
     }
 }
 
@@ -491,17 +491,17 @@ fn nearest(points: &[(f32, f32)], cursor: Vec3) -> Option<usize> {
     best.map(|(index, _)| index)
 }
 
-fn play(boomer_world: &mut BoomerWorld, world: &mut World) {
-    if boomer_world.resources.editor.data.blocks.is_empty()
-        && boomer_world.resources.editor.data.spawn_points.is_empty()
+fn play(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    if cobalt_world.resources.editor.data.blocks.is_empty()
+        && cobalt_world.resources.editor.data.spawn_points.is_empty()
     {
-        status(boomer_world, "PLACE SOMETHING FIRST");
+        status(cobalt_world, "PLACE SOMETHING FIRST");
         return;
     }
-    teardown(boomer_world, world);
-    boomer_world.resources.editor.active = false;
-    game::start_custom(boomer_world, world);
-    lifecycle::enter(boomer_world, world, Screen::InGame);
+    teardown(cobalt_world, world);
+    cobalt_world.resources.editor.active = false;
+    game::start_custom(cobalt_world, world);
+    lifecycle::enter(cobalt_world, world, Screen::InGame);
 }
 
 fn spawn_block_entity(world: &mut World, spec: &content::BlockSpec) -> Entity {
@@ -555,9 +555,9 @@ fn spawn_lamp(world: &mut World, position: Vec3, color: Vec3) -> Entity {
     entity
 }
 
-fn status(boomer_world: &mut BoomerWorld, text: &str) {
-    boomer_world.resources.editor.status = 2.0;
-    boomer_world.resources.editor.status_text = text.to_string();
+fn status(cobalt_world: &mut CobaltWorld, text: &str) {
+    cobalt_world.resources.editor.status = 2.0;
+    cobalt_world.resources.editor.status_text = text.to_string();
 }
 
 fn save_to_disk(data: &LevelData) {
