@@ -31,6 +31,11 @@ pub fn handle_global(boomer_world: &mut BoomerWorld, world: &mut World) {
                 lifecycle::enter(boomer_world, world, Screen::Title);
             }
         }
+        Screen::MissionSelect => {
+            if escape {
+                lifecycle::enter(boomer_world, world, Screen::Title);
+            }
+        }
         Screen::InGame => {
             if escape || start {
                 lifecycle::enter(boomer_world, world, Screen::Paused);

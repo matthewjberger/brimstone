@@ -15,6 +15,7 @@ pub enum Screen {
     Paused,
     Editor,
     Cutscene,
+    MissionSelect,
 }
 
 /// What to do once the player clicks through the current cutscene.
@@ -36,6 +37,9 @@ pub struct StorySlide {
 pub struct StoryState {
     pub active: bool,
     pub mission: usize,
+    /// Highest mission index unlocked for replay/continue (persisted to disk).
+    pub unlocked: usize,
+    pub loaded: bool,
     pub slides: Vec<StorySlide>,
     pub slide_index: usize,
     pub after: StoryNext,
@@ -267,6 +271,13 @@ pub struct LevelSelectHandles {
 }
 
 #[derive(Default)]
+pub struct MissionSelectHandles {
+    pub root: Entity,
+    pub mission_buttons: Vec<Entity>,
+    pub back_button: Entity,
+}
+
+#[derive(Default)]
 pub struct PauseHandles {
     pub root: Entity,
     pub resume_button: Entity,
@@ -311,6 +322,7 @@ pub struct CutsceneHandles {
 pub struct UiHandles {
     pub title: TitleHandles,
     pub level_select: LevelSelectHandles,
+    pub mission_select: MissionSelectHandles,
     pub pause: PauseHandles,
     pub hud: HudHandles,
     pub editor: EditorHandles,

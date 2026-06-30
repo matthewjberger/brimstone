@@ -1,5 +1,5 @@
 use crate::ecs::{BoomerWorld, Screen, UiHandles};
-use crate::systems::screens::{cutscene, hud, level_select, pause, title};
+use crate::systems::screens::{cutscene, hud, level_select, mission_select, pause, title};
 use crate::systems::world::{audio, game, player, textures};
 use nightshade::ecs::graphics::resources::ColorGradingPreset;
 use nightshade::prelude::*;
@@ -27,9 +27,11 @@ pub fn initialize(boomer_world: &mut BoomerWorld, world: &mut World) {
     let hud_handles = hud::build(&mut tree);
     let editor_handles = crate::systems::editor::build_ui(&mut tree);
     let cutscene_handles = cutscene::build(&mut tree);
+    let mission_select_handles = mission_select::build(&mut tree);
     tree.finish();
     boomer_world.resources.ui_handles.title = title_handles;
     boomer_world.resources.ui_handles.level_select = level_select_handles;
+    boomer_world.resources.ui_handles.mission_select = mission_select_handles;
     boomer_world.resources.ui_handles.pause = pause_handles;
     boomer_world.resources.ui_handles.hud = hud_handles;
     boomer_world.resources.ui_handles.editor = editor_handles;
@@ -78,6 +80,12 @@ fn screen_config(handles: &UiHandles, screen: Screen) -> ScreenConfig {
             gamepad_nav: true,
             focus: handles.level_select.level_buttons.first().copied(),
         },
+        Screen::MissionSelect => ScreenConfig {
+            physics_enabled: false,
+            cursor_locked: false,
+            gamepad_nav: true,
+            focus: handles.mission_select.mission_buttons.first().copied(),
+        },
         Screen::Paused => ScreenConfig {
             physics_enabled: false,
             cursor_locked: false,
@@ -113,6 +121,11 @@ fn apply_visibility(boomer_world: &BoomerWorld, world: &mut World) {
         world,
         handles.level_select.root,
         matches!(screen, Screen::LevelSelect),
+    );
+    ui_set_visible(
+        world,
+        handles.mission_select.root,
+        matches!(screen, Screen::MissionSelect),
     );
     ui_set_visible(world, handles.pause.root, matches!(screen, Screen::Paused));
     ui_set_visible(

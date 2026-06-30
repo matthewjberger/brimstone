@@ -8,12 +8,47 @@ use crate::systems::lifecycle;
 use crate::systems::world::game;
 use nightshade::prelude::*;
 
-pub fn begin(boomer_world: &mut BoomerWorld, world: &mut World) {
+const PROGRESS_PATH: &str = "boom_campaign.txt";
+
+/// Open the mission picker, loading saved campaign progress on first entry.
+pub fn open_select(boomer_world: &mut BoomerWorld, world: &mut World) {
+    ensure_loaded(boomer_world);
     boomer_world.resources.story.active = true;
-    boomer_world.resources.story.mission = 0;
-    let mut slides = intro_slides();
-    slides.push(briefing_slide(0));
-    show(boomer_world, world, slides, StoryNext::StartMission(0));
+    lifecycle::enter(boomer_world, world, Screen::MissionSelect);
+}
+
+/// Begin a mission from the picker: its briefing (and the opening cutscene for
+/// mission one) then the mission itself.
+pub fn launch_mission(boomer_world: &mut BoomerWorld, world: &mut World, index: usize) {
+    ensure_loaded(boomer_world);
+    boomer_world.resources.story.active = true;
+    boomer_world.resources.story.mission = index;
+    let mut slides = if index == 0 {
+        intro_slides()
+    } else {
+        Vec::new()
+    };
+    slides.push(briefing_slide(index));
+    show(boomer_world, world, slides, StoryNext::StartMission(index));
+}
+
+fn ensure_loaded(boomer_world: &mut BoomerWorld) {
+    if !boomer_world.resources.story.loaded {
+        boomer_world.resources.story.unlocked = load_progress();
+        boomer_world.resources.story.loaded = true;
+    }
+}
+
+fn load_progress() -> usize {
+    std::fs::read_to_string(PROGRESS_PATH)
+        .ok()
+        .and_then(|text| text.trim().parse::<usize>().ok())
+        .unwrap_or(0)
+        .min(campaign::count().saturating_sub(1))
+}
+
+fn save_progress(value: usize) {
+    let _ = std::fs::write(PROGRESS_PATH, value.to_string());
 }
 
 pub fn mission_complete(boomer_world: &mut BoomerWorld, world: &mut World) {
@@ -49,6 +84,10 @@ pub fn advance(boomer_world: &mut BoomerWorld, world: &mut World) {
 
 fn start_mission(boomer_world: &mut BoomerWorld, world: &mut World, index: usize) {
     boomer_world.resources.story.mission = index;
+    if index > boomer_world.resources.story.unlocked {
+        boomer_world.resources.story.unlocked = index;
+        save_progress(index);
+    }
     game::start_mission(boomer_world, world, index);
     lifecycle::enter(boomer_world, world, Screen::InGame);
 }

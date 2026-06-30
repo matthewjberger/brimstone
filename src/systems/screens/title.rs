@@ -120,7 +120,7 @@ pub fn handle_input(boomer_world: &mut BoomerWorld, world: &mut World) {
         }
     }
     if clicked_story {
-        crate::systems::story::begin(boomer_world, world);
+        crate::systems::story::open_select(boomer_world, world);
     } else if clicked_play {
         lifecycle::enter(boomer_world, world, Screen::InGame);
     } else if clicked_level_select {
