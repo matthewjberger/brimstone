@@ -53,7 +53,8 @@ fn save_progress(value: usize) {
 
 pub fn mission_complete(boomer_world: &mut BoomerWorld, world: &mut World) {
     let index = boomer_world.resources.story.mission;
-    let mut slides = vec![debrief_slide(index)];
+    let score = boomer_world.resources.game.score;
+    let mut slides = vec![debrief_slide(index, score)];
     let after = if index + 1 < campaign::count() {
         slides.push(briefing_slide(index + 1));
         StoryNext::StartMission(index + 1)
@@ -139,7 +140,10 @@ fn briefing_slide(index: usize) -> StorySlide {
     )
 }
 
-fn debrief_slide(index: usize) -> StorySlide {
+fn debrief_slide(index: usize, score: u32) -> StorySlide {
     let mission = campaign::mission(index);
-    slide("MISSION COMPLETE", mission.debrief)
+    slide(
+        "MISSION COMPLETE",
+        format!("{}\n\nSCORE  {score}", mission.debrief),
+    )
 }
