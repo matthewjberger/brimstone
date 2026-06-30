@@ -155,6 +155,10 @@ pub enum WeaponKind {
     Nailgun,
     Rocket,
     Railgun,
+    /// Weak infinite-ammo fallback. Always available so a player who burns
+    /// through every other pool can never soft-lock — they switch to this and
+    /// keep fighting, while its low damage keeps the real guns worth chasing.
+    Pistol,
 }
 
 /// Per-weapon ammo economy: starting reserve, hard cap, and refill per pickup.
@@ -167,11 +171,12 @@ struct AmmoSpec {
 impl WeaponKind {
     /// Every weapon in slot order. Indexing it is the canonical weapon→slot map
     /// (see [`WeaponKind::index`]); iterate it to touch each weapon's ammo pool.
-    pub const ALL: [WeaponKind; 4] = [
+    pub const ALL: [WeaponKind; 5] = [
         WeaponKind::Shotgun,
         WeaponKind::Nailgun,
         WeaponKind::Rocket,
         WeaponKind::Railgun,
+        WeaponKind::Pistol,
     ];
 
     pub fn name(self) -> &'static str {
@@ -180,12 +185,18 @@ impl WeaponKind {
             WeaponKind::Nailgun => "NAILGUN",
             WeaponKind::Rocket => "ROCKET",
             WeaponKind::Railgun => "RAILGUN",
+            WeaponKind::Pistol => "PISTOL",
         }
     }
 
     /// This weapon's slot in [`WeaponKind::ALL`] and in the ammo-pool array.
     pub fn index(self) -> usize {
         self as usize
+    }
+
+    /// The infinite-ammo sidearm draws from no pool and never depletes.
+    pub fn infinite(self) -> bool {
+        matches!(self, WeaponKind::Pistol)
     }
 
     fn ammo_spec(self) -> AmmoSpec {
@@ -209,6 +220,12 @@ impl WeaponKind {
                 start: tuning::RAIL_START,
                 max: tuning::RAIL_MAX,
                 pickup: tuning::RAIL_PICKUP,
+            },
+            // Infinite sidearm: no reserve, no cap that matters, no pickup share.
+            WeaponKind::Pistol => AmmoSpec {
+                start: 0,
+                max: 0,
+                pickup: 0,
             },
         }
     }

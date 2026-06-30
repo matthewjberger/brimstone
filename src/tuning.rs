@@ -96,6 +96,17 @@ pub const ROCKET_PICKUP: u32 = 3;
 pub const ROCKET_SELF_DAMAGE: f32 = 12.0;
 pub const ROCKET_SELF_PUSH: f32 = 15.0;
 
+// Pistol (weak infinite-ammo sidearm — the always-available fallback). Low DPS
+// on purpose: enough to kill your way back into ammo when every other pool is
+// dry, never enough to retire the real guns.
+pub const PISTOL_DAMAGE: f32 = 11.0;
+pub const PISTOL_SPREAD: f32 = 0.015;
+pub const PISTOL_COOLDOWN: f32 = 0.26;
+pub const PISTOL_KNOCKBACK: f32 = 2.0;
+pub const PISTOL_SHAKE: f32 = 0.05;
+pub const PISTOL_KICK: f32 = 0.12;
+pub const PISTOL_FOV_POP: f32 = 1.4;
+
 // Railgun (piercing hitscan beam — punches through a whole line of enemies)
 pub const RAIL_DAMAGE: f32 = 85.0;
 pub const RAIL_COOLDOWN: f32 = 1.1;

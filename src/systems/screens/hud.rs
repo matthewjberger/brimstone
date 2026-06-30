@@ -222,11 +222,7 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
         &format!("{:.0}", boomer_world.resources.stats.health.max(0.0)),
     );
     let weapon = &boomer_world.resources.weapon;
-    ui_set_text(
-        world,
-        hud.ammo_label,
-        &format!("{}", weapon.ammo(weapon.current)),
-    );
+    ui_set_text(world, hud.ammo_label, &ammo_text(weapon.current, weapon));
     ui_set_text(world, hud.weapon_label, weapon.current.name());
     ui_set_text(world, hud.ammo_rack, &weapon_rack(weapon));
     ui_set_text(world, hud.score_label, &format!("{}", game.score));
@@ -376,9 +372,19 @@ pub fn update(boomer_world: &BoomerWorld, world: &mut World) {
     );
 }
 
+/// Ammo count for the HUD: a count for normal weapons, an infinity glyph for the
+/// pistol (which never depletes).
+fn ammo_text(kind: WeaponKind, weapon: &WeaponState) -> String {
+    if kind.infinite() {
+        "INF".to_string()
+    } else {
+        format!("{}", weapon.ammo(kind))
+    }
+}
+
 fn weapon_rack(weapon: &WeaponState) -> String {
     let segment = |kind: WeaponKind, tag: &str| {
-        let count = weapon.ammo(kind);
+        let count = ammo_text(kind, weapon);
         if weapon.current == kind {
             format!("[{tag} {count}]")
         } else {
@@ -386,11 +392,12 @@ fn weapon_rack(weapon: &WeaponState) -> String {
         }
     };
     format!(
-        "{}  {}  {}  {}",
+        "{}  {}  {}  {}  {}",
         segment(WeaponKind::Shotgun, "1 SG"),
         segment(WeaponKind::Nailgun, "2 NG"),
         segment(WeaponKind::Rocket, "3 RK"),
         segment(WeaponKind::Railgun, "4 RG"),
+        segment(WeaponKind::Pistol, "5 PS"),
     )
 }
 

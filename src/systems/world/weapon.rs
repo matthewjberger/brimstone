@@ -1,4 +1,4 @@
-use crate::ecs::{BoomerWorld, ENEMY, EnemyState, WeaponKind};
+use crate::ecs::{BoomerWorld, ENEMY, EnemyState, WeaponKind, WeaponState};
 use crate::systems::common::random_range;
 use crate::systems::world::{audio, enemies, fx, projectiles};
 use crate::tuning;
@@ -66,6 +66,17 @@ fn weapon_stats(kind: WeaponKind) -> WeaponStats {
             fov_pop: tuning::RAIL_FOV_POP,
             tracer: vec4(2.6, 1.2, 2.8, 1.0),
         },
+        WeaponKind::Pistol => WeaponStats {
+            pellets: 1,
+            spread: tuning::PISTOL_SPREAD,
+            damage: tuning::PISTOL_DAMAGE,
+            cooldown: tuning::PISTOL_COOLDOWN,
+            knockback: tuning::PISTOL_KNOCKBACK,
+            shake: tuning::PISTOL_SHAKE,
+            kick: tuning::PISTOL_KICK,
+            fov_pop: tuning::PISTOL_FOV_POP,
+            tracer: vec4(2.2, 1.9, 1.4, 1.0),
+        },
     }
 }
 
@@ -77,6 +88,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         (boomer_world.resources.weapon.hit_marker - delta).max(0.0);
 
     switch_weapons(boomer_world, world);
+    auto_equip_sidearm(&mut boomer_world.resources.weapon);
 
     let mouse_fire = world
         .resources
@@ -95,7 +107,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
 
     let kind = boomer_world.resources.weapon.current;
 
-    if boomer_world.resources.weapon.ammo(kind) == 0 {
+    if !kind.infinite() && boomer_world.resources.weapon.ammo(kind) == 0 {
         boomer_world.resources.weapon.cooldown = 0.2;
         audio::play(boomer_world, world, audio::EMPTY, 0.5);
         return;
@@ -103,7 +115,9 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
 
     let stats = weapon_stats(kind);
 
-    *boomer_world.resources.weapon.ammo_mut(kind) -= 1;
+    if !kind.infinite() {
+        *boomer_world.resources.weapon.ammo_mut(kind) -= 1;
+    }
     boomer_world.resources.weapon.cooldown = stats.cooldown;
     boomer_world.resources.game.shake += stats.shake;
     boomer_world.resources.game.cam_kick += stats.kick;
@@ -113,6 +127,7 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
         WeaponKind::Nailgun => (audio::NAILGUN, 0.4),
         WeaponKind::Rocket => (audio::ROCKET, 0.85),
         WeaponKind::Railgun => (audio::RAILGUN, 0.8),
+        WeaponKind::Pistol => (audio::NAILGUN, 0.5),
     };
     audio::play(boomer_world, world, sound, sound_volume);
 
@@ -263,40 +278,51 @@ pub fn update(boomer_world: &mut BoomerWorld, world: &mut World) {
 
 fn switch_weapons(boomer_world: &mut BoomerWorld, world: &World) {
     let keyboard = &world.resources.input.keyboard;
-    let dpad_up = world
-        .resources
-        .input
-        .gamepad
-        .just_pressed_buttons
-        .contains(&gilrs::Button::DPadUp);
-    let dpad_down = world
-        .resources
-        .input
-        .gamepad
-        .just_pressed_buttons
-        .contains(&gilrs::Button::DPadDown);
-    if keyboard.just_pressed(KeyCode::Digit1) {
-        boomer_world.resources.weapon.current = WeaponKind::Shotgun;
-    } else if keyboard.just_pressed(KeyCode::Digit2) {
-        boomer_world.resources.weapon.current = WeaponKind::Nailgun;
-    } else if keyboard.just_pressed(KeyCode::Digit3) {
-        boomer_world.resources.weapon.current = WeaponKind::Rocket;
-    } else if keyboard.just_pressed(KeyCode::Digit4) {
-        boomer_world.resources.weapon.current = WeaponKind::Railgun;
-    } else if dpad_up {
-        boomer_world.resources.weapon.current = match boomer_world.resources.weapon.current {
-            WeaponKind::Shotgun => WeaponKind::Nailgun,
-            WeaponKind::Nailgun => WeaponKind::Rocket,
-            WeaponKind::Rocket => WeaponKind::Railgun,
-            WeaponKind::Railgun => WeaponKind::Shotgun,
-        };
-    } else if dpad_down {
-        boomer_world.resources.weapon.current = match boomer_world.resources.weapon.current {
-            WeaponKind::Shotgun => WeaponKind::Railgun,
-            WeaponKind::Nailgun => WeaponKind::Shotgun,
-            WeaponKind::Rocket => WeaponKind::Nailgun,
-            WeaponKind::Railgun => WeaponKind::Rocket,
-        };
+    let direct = [
+        (KeyCode::Digit1, WeaponKind::Shotgun),
+        (KeyCode::Digit2, WeaponKind::Nailgun),
+        (KeyCode::Digit3, WeaponKind::Rocket),
+        (KeyCode::Digit4, WeaponKind::Railgun),
+        (KeyCode::Digit5, WeaponKind::Pistol),
+    ];
+    for (key, weapon) in direct {
+        if keyboard.just_pressed(key) {
+            boomer_world.resources.weapon.current = weapon;
+            return;
+        }
+    }
+
+    let gamepad = &world.resources.input.gamepad.just_pressed_buttons;
+    let current = boomer_world.resources.weapon.current;
+    if gamepad.contains(&gilrs::Button::DPadUp) {
+        boomer_world.resources.weapon.current = cycle_weapon(current, 1);
+    } else if gamepad.contains(&gilrs::Button::DPadDown) {
+        boomer_world.resources.weapon.current = cycle_weapon(current, -1);
+    }
+}
+
+/// Step through every weapon (sidearm included) by `step` slots, wrapping around.
+fn cycle_weapon(current: WeaponKind, step: i32) -> WeaponKind {
+    let count = WeaponKind::ALL.len() as i32;
+    let next = (current.index() as i32 + step).rem_euclid(count);
+    WeaponKind::ALL[next as usize]
+}
+
+/// Keep a usable weapon in hand: if the held gun is empty and so is every other
+/// pool, drop to the infinite sidearm so the player can always fight. This is
+/// what makes an ammo soft-lock impossible — they never get stuck holding a dead
+/// weapon with no fallback.
+fn auto_equip_sidearm(weapon: &mut WeaponState) {
+    let current = weapon.current;
+    if current.infinite() || weapon.ammo(current) > 0 {
+        return;
+    }
+    let all_dry = WeaponKind::ALL
+        .iter()
+        .filter(|kind| !kind.infinite())
+        .all(|&kind| weapon.ammo(kind) == 0);
+    if all_dry {
+        weapon.current = WeaponKind::Pistol;
     }
 }
 
