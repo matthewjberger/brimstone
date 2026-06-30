@@ -242,6 +242,7 @@ pub fn material_for(kind: BlockKind) -> Material {
         BlockKind::Choke => textures::accent_material(),
         BlockKind::Monument => textures::pillar_material(),
         BlockKind::Platform => textures::platform_material(),
+        BlockKind::Core => textures::core_material(),
     }
 }
 

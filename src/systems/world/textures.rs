@@ -216,6 +216,12 @@ fn ghost_material() -> Material {
     }
 }
 
+/// Glowing structural block (reactor cores, altars). Bright but not as intense
+/// as a beacon, so it reads as lit machinery rather than a pure light source.
+pub fn core_material() -> Material {
+    beacon_material(vec3(1.9, 0.85, 0.30), 2.2)
+}
+
 /// Solid emissive material for glowing landmark beacons.
 pub fn beacon_material(color: Vec3, strength: f32) -> Material {
     Material {

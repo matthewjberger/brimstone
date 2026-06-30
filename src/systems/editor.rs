@@ -27,6 +27,7 @@ pub fn brush_size(kind: BlockKind) -> Vec3 {
         BlockKind::Cover => vec3(3.0, 1.0, 1.4),
         BlockKind::Choke => vec3(2.0, 1.0, 2.0),
         BlockKind::Monument => vec3(3.0, 6.0, 3.0),
+        BlockKind::Core => vec3(3.0, 4.0, 3.0),
     }
 }
 

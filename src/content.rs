@@ -15,9 +15,12 @@ pub enum BlockKind {
     Choke,
     Monument,
     Platform,
+    /// Emissive structural block — reactor cores, altars, glowing machinery.
+    Core,
 }
 
 impl BlockKind {
+    /// The editor's placeable palette (Core is hand-authored only).
     pub const ALL: [BlockKind; 6] = [
         BlockKind::Wall,
         BlockKind::Pillar,
@@ -35,6 +38,7 @@ impl BlockKind {
             BlockKind::Choke => "CHOKE",
             BlockKind::Monument => "MONUMENT",
             BlockKind::Platform => "PLATFORM",
+            BlockKind::Core => "CORE",
         }
     }
 
@@ -46,6 +50,7 @@ impl BlockKind {
             BlockKind::Choke => 3,
             BlockKind::Monument => 4,
             BlockKind::Platform => 5,
+            BlockKind::Core => 6,
         }
     }
 
@@ -56,6 +61,7 @@ impl BlockKind {
             3 => BlockKind::Choke,
             4 => BlockKind::Monument,
             5 => BlockKind::Platform,
+            6 => BlockKind::Core,
             _ => BlockKind::Wall,
         }
     }
@@ -151,7 +157,7 @@ pub fn level(index: usize) -> &'static Level {
     &LEVELS[index % LEVELS.len()]
 }
 
-use BlockKind::{Cover, Monument, Pillar, Platform, Wall};
+use BlockKind::{Core, Cover, Monument, Pillar, Platform, Wall};
 
 // ============================================================================
 // L0 — FOUNDRY. A wide hall dominated by a central machine block you circulate
@@ -159,31 +165,32 @@ use BlockKind::{Cover, Monument, Pillar, Platform, Wall};
 // the machine is sniper high-ground reached by side pads.
 // ============================================================================
 const L0_BLOCKS: &[BlockSpec] = &[
-    (0.0, 2.0, 0.0, 12.0, 4.0, 7.0, Wall), // central machine, roof at 4
-    (16.0, 2.5, 0.0, 1.6, 5.0, 1.6, Pillar),
-    (-16.0, 2.5, 0.0, 1.6, 5.0, 1.6, Pillar),
-    (13.5, 0.5, 9.0, 3.4, 1.0, 3.0, Cover),
-    (-13.5, 0.5, -9.0, 3.4, 1.0, 3.0, Cover),
-    (13.5, 0.45, -9.0, 3.4, 0.9, 3.0, Cover),
-    (-13.5, 0.45, 9.0, 3.4, 0.9, 3.0, Cover),
-    (8.0, 0.6, 11.0, 4.0, 1.2, 1.4, Cover), // flanks the entry, clear of spawn
-    (-8.0, 0.6, -11.0, 4.0, 1.2, 1.4, Cover), // flanks the gate
+    (0.0, 1.5, 0.0, 8.0, 3.0, 6.0, Monument), // reactor housing, top 3
+    (0.0, 4.0, 0.0, 3.0, 4.0, 3.0, Core),     // glowing core rising out of it
+    (5.0, 2.0, 4.0, 1.2, 4.0, 1.2, Pillar),   // coolant pipes around the reactor
+    (-5.0, 2.0, 4.0, 1.2, 4.0, 1.2, Pillar),
+    (5.0, 2.0, -4.0, 1.2, 4.0, 1.2, Pillar),
+    (-5.0, 2.0, -4.0, 1.2, 4.0, 1.2, Pillar),
+    (15.5, 1.5, 0.0, 4.0, 3.0, 18.0, Platform), // east gantry, top 3
+    (-15.5, 1.5, 0.0, 4.0, 3.0, 18.0, Platform), // west gantry, top 3
+    (7.0, 0.6, 12.0, 4.0, 1.2, 1.4, Cover),     // entry cover
+    (-7.0, 0.6, -12.0, 4.0, 1.2, 1.4, Cover),   // gate cover
 ];
 const L0_BEACONS: &[BeaconSpec] = &[
-    (10.0, 7.0, [1.6, 0.7, 0.2]),
-    (-10.0, -7.0, [1.6, 0.7, 0.2]),
-    (10.0, -7.0, [0.2, 1.4, 1.7]),
-    (-10.0, 7.0, [0.2, 1.4, 1.7]),
+    (0.0, 6.0, [1.9, 0.8, 0.25]),  // reactor uplight, front
+    (0.0, -6.0, [1.9, 0.8, 0.25]), // reactor uplight, back
+    (14.0, 8.0, [0.2, 1.2, 1.7]),
+    (-14.0, -8.0, [0.2, 1.2, 1.7]),
 ];
 const L0_SPAWNS: &[(f32, f32)] = &[
     (16.0, 10.0),
     (-16.0, 10.0),
     (16.0, -10.0),
     (-16.0, -10.0),
-    (10.0, 0.0),
-    (-10.0, 0.0),
+    (8.0, 0.0),
+    (-8.0, 0.0),
 ];
-const L0_PADS: &[(f32, f32)] = &[(9.5, 4.5), (-9.5, -4.5)];
+const L0_PADS: &[(f32, f32)] = &[(12.0, 0.0), (-12.0, 0.0)];
 
 // ============================================================================
 // L1 — THE LOCKS. A long, narrow corridor chopped into chambers by full-height
