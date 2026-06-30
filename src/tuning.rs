@@ -278,3 +278,12 @@ pub const AMMO_DROP_CHANCE: f32 = 0.22;
 
 // Arena
 pub const ARENA_HALF: f32 = 19.0;
+
+// Navmesh (ground enemies path around level geometry instead of clipping it).
+// agent_radius drives both the bake clearance and the path query, so walls leave
+// a consistent berth; walkable_climb under the shortest cover keeps blocks solid.
+pub const NAV_AGENT_RADIUS: f32 = 0.6;
+pub const NAV_AGENT_HEIGHT: f32 = 1.8;
+pub const NAV_WALKABLE_CLIMB: f32 = 0.5;
+/// Skip waypoints nearer than this so an enemy steers to a meaningful next point.
+pub const NAV_WAYPOINT_MIN: f32 = 0.5;

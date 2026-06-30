@@ -24,15 +24,19 @@ pub fn build(boomer_world: &mut BoomerWorld, world: &mut World, level: &Level) {
     boomer_world.resources.level.half_x = level.half_x;
     boomer_world.resources.level.half_z = level.half_z;
     let mut geometry = spawn_shell(world, level.half_x, level.half_z);
+    let mut obstacles: Vec<(Vec3, Vec3)> = Vec::new();
 
     for (cx, cy, cz, sx, sy, sz, kind) in level.blocks {
+        let center = vec3(*cx, *cy, *cz);
+        let size = vec3(*sx, *sy, *sz);
         geometry.push(spawn_block(
             world,
             "Block",
-            vec3(*cx, *cy, *cz),
-            vec3(*sx, *sy, *sz),
+            center,
+            size,
             material_for(*kind),
         ));
+        obstacles.push((center, size));
     }
 
     for (cx, cy, cz, sx, sy, sz, pitch, yaw) in level.ramps {
@@ -55,13 +59,16 @@ pub fn build(boomer_world: &mut BoomerWorld, world: &mut World, level: &Level) {
 
     for (x, z, color) in level.beacons {
         let color = vec3(color[0], color[1], color[2]);
+        let center = vec3(*x, 2.5, *z);
+        let size = vec3(0.7, 5.0, 0.7);
         geometry.push(spawn_block(
             world,
             "Beacon",
-            vec3(*x, 2.5, *z),
-            vec3(0.7, 5.0, 0.7),
+            center,
+            size,
             textures::beacon_material(color, 2.6),
         ));
+        obstacles.push((center, size));
         geometry.push(spawn_lamp(world, vec3(*x, 3.0, *z), color, 28.0, 15.0));
         geometry.push(spawn_embers(world, vec3(*x, 0.2, *z), color));
     }
@@ -69,6 +76,7 @@ pub fn build(boomer_world: &mut BoomerWorld, world: &mut World, level: &Level) {
     let pads = spawn_pads(world, level.pads, &mut geometry);
     let exit_position = vec3(level.exit[0], 0.0, level.exit[1]);
     finalize_level(boomer_world, world, geometry, pads, exit_position);
+    rebuild_navmesh(world, &obstacles, level.half_x, level.half_z);
 }
 
 /// Build a level from owned editor/custom data (no beacons or ramps).
@@ -77,20 +85,25 @@ pub fn build_dynamic(boomer_world: &mut BoomerWorld, world: &mut World, data: &L
     boomer_world.resources.level.half_x = tuning::ARENA_HALF;
     boomer_world.resources.level.half_z = tuning::ARENA_HALF;
     let mut geometry = spawn_shell(world, tuning::ARENA_HALF, tuning::ARENA_HALF);
+    let mut obstacles: Vec<(Vec3, Vec3)> = Vec::new();
 
     for (cx, cy, cz, sx, sy, sz, kind) in &data.blocks {
+        let center = vec3(*cx, *cy, *cz);
+        let size = vec3(*sx, *sy, *sz);
         geometry.push(spawn_block(
             world,
             "Block",
-            vec3(*cx, *cy, *cz),
-            vec3(*sx, *sy, *sz),
+            center,
+            size,
             material_for(*kind),
         ));
+        obstacles.push((center, size));
     }
 
     let pads = spawn_pads(world, &data.pads, &mut geometry);
     let exit_position = vec3(data.exit[0], 0.0, data.exit[1]);
     finalize_level(boomer_world, world, geometry, pads, exit_position);
+    rebuild_navmesh(world, &obstacles, tuning::ARENA_HALF, tuning::ARENA_HALF);
 }
 
 pub fn apply_environment(world: &mut World, atmosphere: Atmosphere, fog: [f32; 3]) {
@@ -214,6 +227,80 @@ pub fn despawn(boomer_world: &mut BoomerWorld, world: &mut World) {
         despawn_recursive_immediate(world, entity);
     }
     boomer_world.resources.level.exit_entity = None;
+    clear_navmesh(world);
+}
+
+/// Bake a navmesh for the level so ground enemies route around walls and blocks
+/// instead of clipping through them. The walkable floor is one quad at y=0 and
+/// every solid block/beacon is punched in as a box obstacle; the Recast bake runs
+/// synchronously and lands in `world.resources.navmesh`. Built from the level's
+/// authored geometry rather than physics colliders, which are not yet synced into
+/// the collider set at level-build time.
+fn rebuild_navmesh(world: &mut World, obstacles: &[(Vec3, Vec3)], half_x: f32, half_z: f32) {
+    let mut vertices: Vec<[f32; 3]> = Vec::new();
+    let mut indices: Vec<[u32; 3]> = Vec::new();
+    push_floor(&mut vertices, &mut indices, half_x, half_z);
+    for (center, size) in obstacles {
+        push_box(&mut vertices, &mut indices, *center, *size);
+    }
+
+    let config = RecastNavMeshConfig {
+        agent_radius: tuning::NAV_AGENT_RADIUS,
+        agent_height: tuning::NAV_AGENT_HEIGHT,
+        walkable_climb: tuning::NAV_WALKABLE_CLIMB,
+        ..Default::default()
+    };
+    match generate_navmesh_recast(&vertices, &indices, &config) {
+        Some(navmesh) => world.resources.navmesh = navmesh,
+        None => clear_navmesh(world),
+    }
+}
+
+/// The walkable ground: a single quad spanning the level footprint at y=0.
+fn push_floor(vertices: &mut Vec<[f32; 3]>, indices: &mut Vec<[u32; 3]>, half_x: f32, half_z: f32) {
+    let base = vertices.len() as u32;
+    vertices.push([-half_x, 0.0, -half_z]);
+    vertices.push([half_x, 0.0, -half_z]);
+    vertices.push([half_x, 0.0, half_z]);
+    vertices.push([-half_x, 0.0, half_z]);
+    indices.push([base, base + 2, base + 1]);
+    indices.push([base, base + 3, base + 2]);
+}
+
+/// A solid box obstacle (8 corners, 12 triangles). `size` is the full extent, so
+/// the half-extents are `size * 0.5` about `center` — matching how blocks spawn.
+fn push_box(vertices: &mut Vec<[f32; 3]>, indices: &mut Vec<[u32; 3]>, center: Vec3, size: Vec3) {
+    let half = size * 0.5;
+    let base = vertices.len() as u32;
+    for sx in [-1.0_f32, 1.0] {
+        for sy in [-1.0_f32, 1.0] {
+            for sz in [-1.0_f32, 1.0] {
+                vertices.push([
+                    center.x + sx * half.x,
+                    center.y + sy * half.y,
+                    center.z + sz * half.z,
+                ]);
+            }
+        }
+    }
+    // Corner index = (x_bit << 2) | (y_bit << 1) | z_bit, in the push order above.
+    const FACES: [[u32; 3]; 12] = [
+        [0, 2, 3],
+        [0, 3, 1], // -X
+        [4, 5, 7],
+        [4, 7, 6], // +X
+        [0, 1, 5],
+        [0, 5, 4], // -Y
+        [2, 6, 7],
+        [2, 7, 3], // +Y
+        [0, 4, 6],
+        [0, 6, 2], // -Z
+        [1, 3, 7],
+        [1, 7, 5], // +Z
+    ];
+    for face in FACES {
+        indices.push([base + face[0], base + face[1], base + face[2]]);
+    }
 }
 
 pub fn open_exit(boomer_world: &mut BoomerWorld, world: &mut World) {

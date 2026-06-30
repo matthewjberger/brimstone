@@ -14,7 +14,12 @@ name = "boom"
 path = "src/main.rs"
 
 [dependencies]
-nightshade = { version = "0.48.0", features = ["physics", "audio", "gamepad"] }
+nightshade = { version = "0.48.0", features = [
+    "physics",
+    "audio",
+    "gamepad",
+    "navmesh-bake",
+] }
 nalgebra-glm = "0.20"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

@@ -4,6 +4,7 @@ use crate::systems::common::random_range;
 use crate::systems::world::{audio, billboard, fx, game, pickups, player, projectiles};
 use crate::tuning;
 use nalgebra_glm::{Vec3, vec3};
+use nightshade::ecs::navmesh::find_path_with_algorithm;
 use nightshade::ecs::physics::resources::physics_world_cast_ray;
 use nightshade::prelude::*;
 
@@ -551,7 +552,9 @@ fn behave_flying_ranged(
     ranged_fire(enemy, s, ctx, effects);
 }
 
-/// Caster: hold range on the ground and lob fireballs.
+/// Caster: hold range on the ground and lob fireballs. Unlike the flying
+/// sentinel, when closing the gap it routes toward the player via the navmesh so
+/// it does not advance straight through a wall.
 fn behave_ground_ranged(
     enemy: &mut Enemy,
     s: &Stats,
@@ -560,7 +563,13 @@ fn behave_ground_ranged(
     effects: &mut Effects,
 ) {
     enemy.state = EnemyState::Chase;
-    let steer = avoid(world, enemy.position, ranged_move_dir(enemy, s, ctx));
+    let move_dir = ranged_move_dir(enemy, s, ctx);
+    let move_dir = if ctx.distance > s.preferred_range + 1.5 {
+        nav_direction(world, enemy.position, ctx.player_center).unwrap_or(move_dir)
+    } else {
+        move_dir
+    };
+    let steer = avoid(world, enemy.position, move_dir);
     enemy.position += steer * s.speed * ctx.delta;
     ranged_fire(enemy, s, ctx, effects);
 }
@@ -631,7 +640,9 @@ fn behave_melee(
         }
     } else if attack_distance > s.attack_range {
         enemy.state = EnemyState::Chase;
-        let steer = avoid(world, enemy.position, ctx.direction);
+        let desired =
+            nav_direction(world, enemy.position, ctx.player_center).unwrap_or(ctx.direction);
+        let steer = avoid(world, enemy.position, desired);
         enemy.position += steer * s.speed * ctx.delta;
     } else if enemy.attack_cooldown <= 0.0 {
         enemy.state = EnemyState::Attack;
@@ -675,6 +686,33 @@ fn rotate_y(direction: Vec3, angle: f32) -> Vec3 {
         0.0,
         -direction.x * sin + direction.z * cos,
     )
+}
+
+/// Wall-aware direction from `from` toward `to` via the level navmesh: steers at
+/// the next path waypoint so ground enemies route around geometry instead of
+/// clipping it. Returns `None` when there is no navmesh or no path, so the caller
+/// falls back to straight-line steering (and the local [`avoid`] probes).
+fn nav_direction(world: &World, from: Vec3, to: Vec3) -> Option<Vec3> {
+    let navmesh = &world.resources.navmesh;
+    if navmesh.triangles.is_empty() {
+        return None;
+    }
+    let request = PathRequest::new(from, to).with_radius(tuning::NAV_AGENT_RADIUS);
+    let result = find_path_with_algorithm(navmesh, &request, navmesh.algorithm);
+    if !matches!(result.status, PathStatus::Found | PathStatus::PartialPath) {
+        return None;
+    }
+    let next = result.waypoints.iter().skip(1).find(|waypoint| {
+        let mut offset = **waypoint - from;
+        offset.y = 0.0;
+        offset.norm() > tuning::NAV_WAYPOINT_MIN
+    })?;
+    let mut direction = next - from;
+    direction.y = 0.0;
+    if direction.norm() < 1e-3 {
+        return None;
+    }
+    Some(direction.normalize())
 }
 
 /// Steer toward `desired`, sidestepping cover via a few short probe rays.
