@@ -25,6 +25,7 @@ impl State for Brimstone {
         self.run_game(world);
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(mut shot) = self.shot.take() {
+            shot.player_camera = self.brimstone_world.resources.player.camera_entity;
             let done = shot.run(world);
             if !done {
                 self.shot = Some(shot);
@@ -102,6 +103,7 @@ impl Brimstone {
 #[cfg(not(target_arch = "wasm32"))]
 struct DevShot {
     camera: Option<Entity>,
+    player_camera: Option<Entity>,
     poses: Vec<(Vec3, f32, f32)>,
     output_dir: String,
     warmup: u32,
@@ -117,6 +119,7 @@ impl DevShot {
     fn new() -> Self {
         Self {
             camera: None,
+            player_camera: None,
             poses: vec![
                 (Vec3::new(0.0, 6.0, 44.0), -0.08, 0.0),
                 (Vec3::new(0.0, 78.0, 165.0), -0.42, 0.0),
@@ -159,12 +162,26 @@ impl DevShot {
             return false;
         }
         let elapsed = self.frame - self.warmup - 1;
-        let pose_index = (elapsed / Self::FRAMES_PER_POSE) as usize;
-        if pose_index >= self.poses.len() {
+        // The first slot renders the player's own first-person camera, to confirm
+        // the character is standing on the streamed terrain; the rest fly the free
+        // tour camera to the fixed vantage points.
+        let slot = (elapsed / Self::FRAMES_PER_POSE) as usize;
+        if slot > self.poses.len() {
             world.resources.window.should_exit = true;
             return true;
         }
         let local = elapsed % Self::FRAMES_PER_POSE;
+        if slot == 0 {
+            if let Some(player_camera) = self.player_camera {
+                world.resources.active_camera = Some(player_camera);
+            }
+            if local == Self::CAPTURE_AT {
+                let path = format!("{}/overworld_player.png", self.output_dir);
+                nightshade::ecs::world::commands::capture_screenshot_to_path(world, path);
+            }
+            return false;
+        }
+        let pose_index = slot - 1;
         let camera = self.ensure_camera(world);
         let (position, pitch, yaw) = self.poses[pose_index];
         if let Some(transform) = world.core.get_local_transform_mut(camera) {
