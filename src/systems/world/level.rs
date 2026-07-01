@@ -178,6 +178,38 @@ pub fn spawn_marker(world: &mut World, position: Vec3, size: Vec3, material: &st
     entity
 }
 
+/// A ruined stone spire ringed by pillars with a glowing capstone and a bright
+/// beacon, tall enough to read as a navigable landmark from across the overworld.
+/// The interaction point sits at its base. Returns every part for teardown.
+pub fn spawn_poi_landmark(world: &mut World, base: Vec3, color: Vec3) -> Vec<Entity> {
+    let mut parts = Vec::new();
+    parts.push(spawn_marker(
+        world,
+        base + vec3(0.0, 8.0, 0.0),
+        vec3(2.4, 16.0, 2.4),
+        textures::MAT_ROCK,
+    ));
+    for index in 0..4 {
+        let angle = index as f32 * std::f32::consts::FRAC_PI_2 + 0.4;
+        let offset = vec3(angle.cos() * 3.6, 4.0, angle.sin() * 3.6);
+        parts.push(spawn_marker(
+            world,
+            base + offset,
+            vec3(1.1, 8.0, 1.1),
+            textures::MAT_ROCK,
+        ));
+    }
+    parts.push(spawn_marker(
+        world,
+        base + vec3(0.0, 16.8, 0.0),
+        vec3(2.8, 2.8, 2.8),
+        MAT_EXIT,
+    ));
+    parts.push(spawn_lamp(world, base + vec3(0.0, 17.4, 0.0), color, 42.0, 64.0));
+    parts.push(spawn_embers(world, base + vec3(0.0, 0.3, 0.0), color));
+    parts
+}
+
 pub fn apply_environment(world: &mut World, atmosphere: Atmosphere, fog: [f32; 3]) {
     let settings = &mut world.resources.render_settings;
     settings.atmosphere = atmosphere;

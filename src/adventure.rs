@@ -252,6 +252,9 @@ const OVERWORLD_POIS: &[PortalSpec] = &[
     (40.0, 240.0, AREA_WILDS, "the Fen Ruin"),
     (-150.0, -190.0, AREA_HOLLOW, "the Sunken Barrow"),
     (230.0, -110.0, AREA_WILDS, "the Reedmire"),
+    (-330.0, -50.0, AREA_HOLLOW, "the Ashen Spire"),
+    (120.0, -320.0, AREA_WILDS, "the Drowned Hold"),
+    (-70.0, 400.0, AREA_HOLLOW, "the Frost Cairn"),
 ];
 const HOLLOW_ENEMIES: &[EnemyKind] = &[
     EnemyKind::Brute,
@@ -482,18 +485,9 @@ fn spawn_ready_portals(brimstone_world: &mut BrimstoneWorld, world: &mut World) 
         let Some(ground) = world.resources.terrain_render.sample_height(*x, *z) else {
             return true;
         };
-        let marker = level::spawn_marker(
-            world,
-            vec3(*x, ground + 3.2, *z),
-            vec3(3.2, 7.0, 3.2),
-            MAT_EXIT,
-        );
-        let light = level::spawn_accent_light(world, vec3(*x, ground + 3.4, *z), portal_color);
-        let embers = level::spawn_embers(world, vec3(*x, ground + 0.3, *z), portal_color);
+        let mut parts = level::spawn_poi_landmark(world, vec3(*x, ground, *z), portal_color);
         let adventure = &mut brimstone_world.resources.adventure;
-        adventure.geometry.push(marker);
-        adventure.geometry.push(light);
-        adventure.geometry.push(embers);
+        adventure.geometry.append(&mut parts);
         adventure.portals.push(AdventurePortal {
             position: vec3(*x, ground, *z),
             target_area: *target,
