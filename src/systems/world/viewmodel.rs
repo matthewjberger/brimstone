@@ -312,10 +312,10 @@ pub fn update(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let speed = (moved.norm() / delta).min(20.0);
     viewmodel.last_position = position;
     let move_amount = (speed * 0.1).min(1.0);
-    viewmodel.bob_phase += delta * (5.0 + speed * 0.6);
+    viewmodel.bob_phase += delta * (2.6 + speed * 0.28);
     let bob = vec3(
-        viewmodel.bob_phase.sin() * 0.006 * move_amount,
-        (viewmodel.bob_phase * 2.0).sin().abs() * 0.006 * move_amount,
+        viewmodel.bob_phase.sin() * 0.007 * move_amount,
+        (viewmodel.bob_phase * 2.0).sin().abs() * 0.004 * move_amount,
         0.0,
     );
 
