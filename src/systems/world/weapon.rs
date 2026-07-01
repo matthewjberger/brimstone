@@ -1,6 +1,6 @@
 use crate::ecs::{CobaltWorld, ENEMY, EnemyState, WeaponKind, WeaponState};
 use crate::systems::common::random_range;
-use crate::systems::world::{audio, enemies, fx, projectiles};
+use crate::systems::world::{audio, enemies, fx, projectiles, viewmodel};
 use crate::tuning;
 use nalgebra_glm::{Vec3, Vec4, dot, vec3, vec4};
 use nightshade::ecs::input::queries::query_active_gamepad;
@@ -327,10 +327,10 @@ fn tesla_beam(cobalt_world: &mut CobaltWorld, world: &mut World, firing: bool) {
         return;
     }
 
-    let Some((origin, forward, _right, _up)) = camera_frame(cobalt_world, world) else {
+    let Some((origin, forward, right, up)) = camera_frame(cobalt_world, world) else {
         return;
     };
-    let muzzle = origin + forward * 0.6;
+    let muzzle = viewmodel::muzzle(cobalt_world, origin, forward, right, up);
 
     let targets: Vec<(Entity, Vec3)> = cobalt_world
         .query_entities(ENEMY)

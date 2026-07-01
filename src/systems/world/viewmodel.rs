@@ -223,6 +223,23 @@ fn material(color: [f32; 3], glow: f32) -> Material {
     }
 }
 
+/// World-space barrel tip of the held weapon for the current aim state, given
+/// the camera frame. Effects anchored here (the tesla arc) line up with the
+/// visible model whether it's held at the hip or slid to centre in ADS.
+pub fn muzzle(
+    cobalt_world: &CobaltWorld,
+    origin: Vec3,
+    forward: Vec3,
+    right: Vec3,
+    up: Vec3,
+) -> Vec3 {
+    let aim = cobalt_world.resources.viewmodel.aim.clamp(0.0, 1.0);
+    let base = lerp(&HIP_POS, &ADS_POS, aim);
+    let barrel = (vec3(0.0, 0.0, -CONVERGE_DIST) - base).normalize();
+    let tip = base + barrel * 0.4;
+    origin + right * tip.x + up * tip.y - forward * tip.z
+}
+
 /// Show only the active weapon (also used to hide everything off the game screen).
 pub fn set_active(cobalt_world: &CobaltWorld, world: &mut World, active: i32) {
     for (index, group) in cobalt_world.resources.viewmodel.models.iter().enumerate() {
