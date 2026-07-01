@@ -21,7 +21,7 @@ const METAL: [f32; 3] = [0.42, 0.44, 0.5];
 const GRIP: [f32; 3] = [0.28, 0.2, 0.13];
 
 const HIP_POS: Vec3 = Vec3::new(0.24, -0.22, -0.62);
-const ADS_POS: Vec3 = Vec3::new(0.0, -0.05, -0.42);
+const ADS_POS: Vec3 = Vec3::new(0.0, -0.17, -0.42);
 /// Distance ahead of the camera the barrel converges on, so hip and ADS both
 /// point at the crosshair.
 const CONVERGE_DIST: f32 = 8.0;
