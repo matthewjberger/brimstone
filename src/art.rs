@@ -266,6 +266,39 @@ fn blit_cell(rgba: &mut [u8], width: u32, cell_x: u32, cell_y: u32, pixel: [u8; 
     }
 }
 
+/// Rotate a sprite by `radians` (nearest-neighbour) into a padded canvas, so the
+/// corners don't clip. Used to make the angled hip-fire viewmodel pose from the
+/// upright aim-down-sights sprite, guaranteeing both poses are the same weapon.
+pub fn tilted(base: &Sprite, radians: f32) -> Sprite {
+    const PAD: u32 = 44;
+    let width = base.width + PAD * 2;
+    let height = base.height + PAD * 2;
+    let mut out = solid(width, height);
+    let center_x = width as f32 / 2.0;
+    let center_y = height as f32 / 2.0;
+    let base_center_x = base.width as f32 / 2.0;
+    let base_center_y = base.height as f32 / 2.0;
+    let (sin, cos) = radians.sin_cos();
+    for y in 0..height {
+        for x in 0..width {
+            let dx = x as f32 + 0.5 - center_x;
+            let dy = y as f32 + 0.5 - center_y;
+            let source_x = cos * dx + sin * dy + base_center_x;
+            let source_y = -sin * dx + cos * dy + base_center_y;
+            if source_x >= 0.0
+                && source_y >= 0.0
+                && (source_x as u32) < base.width
+                && (source_y as u32) < base.height
+            {
+                let source = (((source_y as u32) * base.width + (source_x as u32)) * 4) as usize;
+                let dest = ((y * width + x) * 4) as usize;
+                out.rgba[dest..dest + 4].copy_from_slice(&base.rgba[source..source + 4]);
+            }
+        }
+    }
+    out
+}
+
 /// Shift a sprite by whole pixels, leaving exposed edges transparent. Used to
 /// synthesize animation frames (a bob / sway cycle) from a single base sprite.
 fn offset(base: &Sprite, dx: i32, dy: i32) -> Sprite {

@@ -29,7 +29,7 @@ pub fn initialize(cobalt_world: &mut CobaltWorld, world: &mut World) {
     game::start_at(cobalt_world, world, 0);
 
     let mut tree = UiTreeBuilder::new(world);
-    let viewmodel_node = viewmodel::build(&mut tree, &cobalt_world.resources.viewmodel.images);
+    let viewmodel_node = viewmodel::build(&mut tree, &cobalt_world.resources.viewmodel.hip_images);
     let title_handles = title::build(&mut tree);
     let level_select_handles = level_select::build(&mut tree);
     let pause_handles = pause::build(&mut tree);

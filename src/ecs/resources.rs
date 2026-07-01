@@ -643,11 +643,15 @@ pub struct AdventureHandles {
 #[derive(Default)]
 pub struct ViewmodelState {
     pub node: Entity,
-    /// Per-weapon UI image as (texture layer, uv_min, uv_max), indexed by
-    /// [`WeaponKind::index`].
+    /// Aim-down-sights (upright, centred) image per weapon: (layer, uv_min,
+    /// uv_max), indexed by [`WeaponKind::index`].
     pub images: Vec<(u32, Vec2, Vec2)>,
-    /// Weapon index currently displayed, or -1 if not yet set.
+    /// Angled hip-fire pose image per weapon, same layout.
+    pub hip_images: Vec<(u32, Vec2, Vec2)>,
+    /// Key identifying the image currently shown (weapon + pose), or -1.
     pub shown: i32,
+    /// Blend from hip (0) to aim-down-sights (1).
+    pub aim: f32,
     pub bob_phase: f32,
     pub last_position: Vec3,
 }
