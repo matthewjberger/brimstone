@@ -303,10 +303,11 @@ fn switch_weapons(cobalt_world: &mut CobaltWorld, world: &World) {
     }
 
     let gamepad = &world.resources.input.gamepad.just_pressed_buttons;
+    let scroll = world.resources.input.mouse.wheel_delta.y;
     let current = cobalt_world.resources.weapon.current;
-    if gamepad.contains(&gilrs::Button::DPadUp) {
+    if gamepad.contains(&gilrs::Button::DPadUp) || scroll > 0.5 {
         cobalt_world.resources.weapon.current = cycle_weapon(current, 1);
-    } else if gamepad.contains(&gilrs::Button::DPadDown) {
+    } else if gamepad.contains(&gilrs::Button::DPadDown) || scroll < -0.5 {
         cobalt_world.resources.weapon.current = cycle_weapon(current, -1);
     }
 }

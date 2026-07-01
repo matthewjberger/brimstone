@@ -131,12 +131,14 @@ pub fn build_arena(
         obstacles.push((center, size));
     }
     geometry.push(spawn_sun(world));
+    // A gentle overhead fill so the large floor isn't pitch black, but low enough
+    // that it doesn't blow past the bloom threshold and make the ground glow.
     geometry.push(spawn_lamp(
         world,
-        vec3(0.0, 11.0, 0.0),
-        vec3(0.7, 0.7, 0.85),
-        46.0,
-        half_x.max(half_z) * 2.2,
+        vec3(0.0, 12.0, 0.0),
+        vec3(0.5, 0.5, 0.62),
+        10.0,
+        half_x.max(half_z) * 1.1,
     ));
     rebuild_navmesh(world, &obstacles, half_x, half_z);
     geometry
@@ -144,7 +146,7 @@ pub fn build_arena(
 
 /// A coloured point light at `position` for adventure-mode accent lighting.
 pub fn spawn_accent_light(world: &mut World, position: Vec3, color: Vec3) -> Entity {
-    spawn_lamp(world, position, color, 26.0, 16.0)
+    spawn_lamp(world, position, color, 11.0, 14.0)
 }
 
 /// A stretched, material-textured cube used as a world marker (e.g. a portal

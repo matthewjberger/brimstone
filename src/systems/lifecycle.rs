@@ -24,12 +24,11 @@ pub fn initialize(cobalt_world: &mut CobaltWorld, world: &mut World) {
 
     textures::load(world);
     audio::load(world);
-    viewmodel::load(cobalt_world, world);
     player::spawn(cobalt_world, world);
+    viewmodel::spawn(cobalt_world, world);
     game::start_at(cobalt_world, world, 0);
 
     let mut tree = UiTreeBuilder::new(world);
-    let viewmodel_node = viewmodel::build(&mut tree, &cobalt_world.resources.viewmodel.hip_images);
     let title_handles = title::build(&mut tree);
     let level_select_handles = level_select::build(&mut tree);
     let pause_handles = pause::build(&mut tree);
@@ -47,7 +46,6 @@ pub fn initialize(cobalt_world: &mut CobaltWorld, world: &mut World) {
     cobalt_world.resources.ui_handles.editor = editor_handles;
     cobalt_world.resources.ui_handles.cutscene = cutscene_handles;
     cobalt_world.resources.ui_handles.adventure = adventure_handles;
-    cobalt_world.resources.viewmodel.node = viewmodel_node;
 
     enter(cobalt_world, world, Screen::Title);
 }
@@ -57,6 +55,9 @@ pub fn enter(cobalt_world: &mut CobaltWorld, world: &mut World, screen: Screen) 
 
     cobalt_world.resources.screen.current = screen;
     apply_visibility(cobalt_world, world);
+    if !matches!(screen, Screen::InGame | Screen::Paused | Screen::Adventure) {
+        viewmodel::set_active(cobalt_world, world, -1);
+    }
 
     world.resources.physics.enabled = config.physics_enabled;
     set_cursor_locked(world, config.cursor_locked);
@@ -161,10 +162,5 @@ fn apply_visibility(cobalt_world: &CobaltWorld, world: &mut World) {
         world,
         handles.adventure.root,
         matches!(screen, Screen::Adventure),
-    );
-    ui_set_visible(
-        world,
-        cobalt_world.resources.viewmodel.node,
-        matches!(screen, Screen::InGame | Screen::Paused | Screen::Adventure),
     );
 }

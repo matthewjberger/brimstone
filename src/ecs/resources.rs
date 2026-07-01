@@ -1,6 +1,6 @@
 use super::components::EnemyKind;
 use crate::tuning;
-use nalgebra_glm::{Vec2, Vec3};
+use nalgebra_glm::Vec3;
 use nightshade::prelude::Entity;
 
 /// A queued spawn: which enemy kind, whether it is an elite variant, and
@@ -636,22 +636,23 @@ pub struct AdventureHandles {
     pub panel_body: Entity,
 }
 
-/// First-person weapon viewmodel: the bottom-screen gun sprite. The
-/// UI node is built once; each weapon's uploaded image (UI texture layer + UV
-/// sub-rect) is cached and swapped in, and the node is offset per frame for bob
-/// and recoil. Purely cosmetic — aim and hit detection are unaffected.
+/// First-person weapon viewmodel: a small 3D model of colored cube parts
+/// parented to the camera and held in the lower-right, so you see the weapon from
+/// a 3/4 side angle (hip); aiming raises it to centre, head-on. Purely cosmetic —
+/// aim and hit detection are unaffected.
 #[derive(Default)]
 pub struct ViewmodelState {
-    pub node: Entity,
-    /// Aim-down-sights (upright, centred) image per weapon: (layer, uv_min,
-    /// uv_max), indexed by [`WeaponKind::index`].
-    pub images: Vec<(u32, Vec2, Vec2)>,
-    /// Angled hip-fire pose image per weapon, same layout.
-    pub hip_images: Vec<(u32, Vec2, Vec2)>,
-    /// Key identifying the image currently shown (weapon + pose), or -1.
-    pub shown: i32,
+    /// Camera-parented root the weapon parts hang under.
+    pub root: Entity,
+    /// The cube-part entities of each weapon's model, indexed by
+    /// [`WeaponKind::index`].
+    pub models: Vec<Vec<Entity>>,
     /// Blend from hip (0) to aim-down-sights (1).
     pub aim: f32,
+    /// Weapon whose parts are currently visible, or -1.
+    pub shown: i32,
+    /// Countdown of the lower/raise weapon-swap animation.
+    pub switch: f32,
     pub bob_phase: f32,
     pub last_position: Vec3,
 }

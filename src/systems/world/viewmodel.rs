@@ -1,83 +1,223 @@
-//! First-person weapon viewmodel: a screen-space sprite of the held weapon
-//! pinned to the bottom of the view. Each weapon has two poses — an angled
-//! hip-fire sprite (the default) and an upright aim-down-sights sprite — uploaded
-//! once as UI images. A single node swaps to the current weapon/pose and is offset
-//! per frame for a walk bob and a recoil kick, sliding from the lower-right hip
-//! position toward centre as you aim. Purely cosmetic — aim, crosshair, and hit
-//! detection all stay at screen centre.
+//! First-person weapon viewmodel: a small 3D model built from colored cube parts,
+//! parented to the camera and held in the lower-right so you see the weapon from a
+//! 3/4 side angle. Holding aim (right-mouse / gamepad left trigger) slides it to
+//! centre and head-on. It bobs while walking and kicks on each shot. Purely
+//! cosmetic — the crosshair, aim, and hit detection all stay at screen centre.
 
-use crate::art;
 use crate::ecs::CobaltWorld;
 use crate::systems::world::player;
-use nalgebra_glm::{Vec2, vec2};
+use nalgebra_glm::{Vec3, lerp, quat_angle_axis, quat_identity, vec3};
 use nightshade::ecs::input::queries::query_active_gamepad;
 use nightshade::ecs::input::resources::MouseState;
-use nightshade::ecs::ui::components::UiNodeContent;
-use nightshade::ecs::ui::layout_types::UiLayoutType;
+use nightshade::ecs::material::components::Material;
+use nightshade::ecs::transform::components::Parent;
+use nightshade::ecs::world::{
+    GLOBAL_TRANSFORM, LOCAL_TRANSFORM, LOCAL_TRANSFORM_DIRTY, NAME, PARENT,
+};
 use nightshade::prelude::*;
 
-/// Display size of the gun sprite.
-const VIEW_SIZE: Vec2 = Vec2::new(520.0, 400.0);
-/// Tilt of the hip-fire pose relative to the upright aim pose.
-const HIP_TILT: f32 = 0.55;
+const DARK: [f32; 3] = [0.13, 0.14, 0.17];
+const METAL: [f32; 3] = [0.42, 0.44, 0.5];
+const GRIP: [f32; 3] = [0.28, 0.2, 0.13];
 
-/// Upload each weapon's aim (upright) and hip (angled) viewmodel sprite as UI
-/// images, caching their texture layer + UV sub-rect by weapon index.
-pub fn load(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    let sprites = [
-        art::viewmodel_shotgun(),
-        art::viewmodel_nailgun(),
-        art::viewmodel_rocket(),
-        art::viewmodel_railgun(),
-        art::viewmodel_pistol(),
-    ];
-    let mut images = Vec::new();
-    let mut hip_images = Vec::new();
-    for sprite in sprites {
-        images.push(upload(world, &sprite));
-        hip_images.push(upload(world, &art::tilted(&sprite, HIP_TILT)));
+const HIP_POS: Vec3 = Vec3::new(0.24, -0.22, -0.62);
+const ADS_POS: Vec3 = Vec3::new(0.0, -0.05, -0.42);
+/// Distance ahead of the camera the barrel converges on, so hip and ADS both
+/// point at the crosshair.
+const CONVERGE_DIST: f32 = 8.0;
+/// Duration of the lower-then-raise weapon-swap animation.
+const SWITCH_TIME: f32 = 0.34;
+
+/// One cube part of a weapon model: local offset, size, colour, and how brightly
+/// it glows (0 = matte metal, >0 = emissive accent).
+struct Part {
+    local: Vec3,
+    scale: Vec3,
+    color: [f32; 3],
+    glow: f32,
+}
+
+const fn matte(local: Vec3, scale: Vec3, color: [f32; 3]) -> Part {
+    Part {
+        local,
+        scale,
+        color,
+        glow: 0.0,
     }
-    cobalt_world.resources.viewmodel.images = images;
-    cobalt_world.resources.viewmodel.hip_images = hip_images;
+}
+
+const fn glow(local: Vec3, scale: Vec3, color: [f32; 3]) -> Part {
+    Part {
+        local,
+        scale,
+        color,
+        glow: 4.0,
+    }
+}
+
+fn model(index: usize) -> Vec<Part> {
+    match index {
+        // Shotgun: twin barrels, receiver, pump, stock.
+        0 => vec![
+            matte(vec3(-0.022, 0.02, -0.16), vec3(0.028, 0.03, 0.42), DARK),
+            matte(vec3(0.022, 0.02, -0.16), vec3(0.028, 0.03, 0.42), DARK),
+            matte(vec3(0.0, 0.0, 0.06), vec3(0.085, 0.08, 0.16), METAL),
+            matte(vec3(0.0, -0.05, -0.12), vec3(0.075, 0.045, 0.1), DARK),
+            matte(vec3(0.0, -0.03, 0.2), vec3(0.05, 0.08, 0.12), GRIP),
+            matte(vec3(0.0, -0.1, 0.05), vec3(0.045, 0.09, 0.05), GRIP),
+            glow(
+                vec3(0.0, 0.055, 0.06),
+                vec3(0.07, 0.016, 0.12),
+                [0.95, 0.55, 0.2],
+            ),
+        ],
+        // Nailgun: boxy body, barrel bundle, drum mag.
+        1 => vec![
+            matte(vec3(0.0, 0.0, -0.02), vec3(0.09, 0.09, 0.28), METAL),
+            matte(vec3(0.0, 0.01, -0.2), vec3(0.06, 0.06, 0.12), DARK),
+            matte(vec3(0.0, -0.06, 0.03), vec3(0.07, 0.09, 0.07), DARK),
+            matte(vec3(0.0, -0.12, 0.07), vec3(0.05, 0.1, 0.05), GRIP),
+            glow(
+                vec3(0.0, 0.05, -0.05),
+                vec3(0.07, 0.02, 0.16),
+                [0.25, 0.8, 0.9],
+            ),
+        ],
+        // Rocket launcher: fat tube, wide muzzle, sight.
+        2 => vec![
+            matte(vec3(0.0, 0.01, -0.14), vec3(0.1, 0.1, 0.44), DARK),
+            matte(vec3(0.0, 0.01, -0.34), vec3(0.12, 0.12, 0.05), METAL),
+            matte(vec3(0.0, -0.04, 0.1), vec3(0.08, 0.08, 0.14), METAL),
+            matte(vec3(0.0, -0.12, 0.08), vec3(0.05, 0.1, 0.05), GRIP),
+            matte(vec3(0.0, 0.08, -0.05), vec3(0.02, 0.04, 0.05), DARK),
+            glow(
+                vec3(0.0, 0.01, -0.35),
+                vec3(0.07, 0.07, 0.02),
+                [0.35, 0.6, 1.0],
+            ),
+        ],
+        // Railgun: long barrel, receiver, glowing coils, stock.
+        3 => vec![
+            matte(vec3(0.0, 0.02, -0.18), vec3(0.045, 0.05, 0.5), DARK),
+            matte(vec3(0.0, 0.0, 0.08), vec3(0.07, 0.08, 0.18), METAL),
+            matte(vec3(0.0, -0.03, 0.22), vec3(0.05, 0.09, 0.12), GRIP),
+            matte(vec3(0.0, -0.09, 0.08), vec3(0.045, 0.09, 0.05), GRIP),
+            glow(
+                vec3(0.0, 0.02, -0.1),
+                vec3(0.06, 0.06, 0.03),
+                [0.7, 0.35, 0.95],
+            ),
+            glow(
+                vec3(0.0, 0.02, -0.24),
+                vec3(0.06, 0.06, 0.03),
+                [0.7, 0.35, 0.95],
+            ),
+        ],
+        // Pistol: slide, short barrel, angled grip.
+        _ => vec![
+            matte(vec3(0.0, 0.0, -0.02), vec3(0.05, 0.06, 0.2), DARK),
+            matte(vec3(0.0, 0.01, -0.16), vec3(0.03, 0.035, 0.08), METAL),
+            matte(vec3(0.0, -0.09, 0.05), vec3(0.05, 0.13, 0.055), GRIP),
+            glow(
+                vec3(0.0, 0.04, -0.14),
+                vec3(0.02, 0.02, 0.03),
+                [0.95, 0.82, 0.35],
+            ),
+        ],
+    }
+}
+
+/// Spawn the camera-parented root and every weapon's cube model (hidden).
+pub fn spawn(cobalt_world: &mut CobaltWorld, world: &mut World) {
+    let Some(camera) = cobalt_world.resources.player.camera_entity else {
+        return;
+    };
+    let root = spawn_entities(
+        world,
+        NAME | LOCAL_TRANSFORM | LOCAL_TRANSFORM_DIRTY | GLOBAL_TRANSFORM | PARENT,
+        1,
+    )[0];
+    world.core.set_name(root, Name("Viewmodel".to_string()));
+    world.core.set_parent(root, Parent(Some(camera)));
+    world.core.set_local_transform(
+        root,
+        LocalTransform {
+            translation: HIP_POS,
+            rotation: quat_identity(),
+            scale: vec3(1.0, 1.0, 1.0),
+        },
+    );
+    world
+        .core
+        .set_global_transform(root, GlobalTransform::default());
+    world.resources.transform_state.children_cache_valid = false;
+    mark_local_transform_dirty(world, root);
+
+    let models: Vec<Vec<Entity>> = (0..5).map(|index| build(world, root, index)).collect();
+    for group in &models {
+        for entity in group {
+            world
+                .core
+                .set_visibility(*entity, Visibility { visible: false });
+        }
+    }
+    cobalt_world.resources.viewmodel.root = root;
+    cobalt_world.resources.viewmodel.models = models;
     cobalt_world.resources.viewmodel.shown = -1;
 }
 
-fn upload(world: &mut World, sprite: &art::Sprite) -> (u32, Vec2, Vec2) {
-    match ui_upload_image(world, &sprite.rgba, sprite.width, sprite.height) {
-        Some(upload) => (upload.layer, upload.uv_min, upload.uv_max),
-        None => (0, vec2(0.0, 0.0), vec2(1.0, 1.0)),
+fn build(world: &mut World, root: Entity, index: usize) -> Vec<Entity> {
+    model(index)
+        .into_iter()
+        .map(|part| {
+            let entity = spawn_cube_at(world, Vec3::zeros());
+            world.core.add_components(entity, PARENT);
+            world.core.set_parent(entity, Parent(Some(root)));
+            if let Some(transform) = world.core.get_local_transform_mut(entity) {
+                transform.translation = part.local;
+                transform.scale = part.scale;
+            }
+            mark_local_transform_dirty(world, entity);
+            spawn_material(
+                world,
+                entity,
+                format!("viewmodel_{}", entity.id),
+                material(part.color, part.glow),
+            );
+            entity
+        })
+        .collect()
+}
+
+fn material(color: [f32; 3], glow: f32) -> Material {
+    Material {
+        base_color: [color[0], color[1], color[2], 1.0],
+        emissive_factor: [color[0] * glow, color[1] * glow, color[2] * glow],
+        emissive_strength: glow,
+        roughness: 0.42,
+        metallic: if glow > 0.0 { 0.0 } else { 0.7 },
+        ..Default::default()
     }
 }
 
-/// Build the single bottom-anchored viewmodel node (hidden until shown by screen).
-pub fn build(tree: &mut UiTreeBuilder, hip_images: &[(u32, Vec2, Vec2)]) -> Entity {
-    let (layer, uv_min, uv_max) =
-        hip_images
-            .first()
-            .copied()
-            .unwrap_or((0, vec2(0.0, 0.0), vec2(1.0, 1.0)));
-    tree.add_node()
-        .window(
-            Rl(vec2(50.0, 100.0)) + Ab(vec2(0.0, 10.0)),
-            Ab(VIEW_SIZE),
-            Anchor::BottomCenter,
-        )
-        .with_image_uv(layer, uv_min, uv_max)
-        .without_pointer_events()
-        .with_visible(false)
-        .entity()
+/// Show only the active weapon (also used to hide everything off the game screen).
+pub fn set_active(cobalt_world: &CobaltWorld, world: &mut World, active: i32) {
+    for (index, group) in cobalt_world.resources.viewmodel.models.iter().enumerate() {
+        let visible = index as i32 == active;
+        for entity in group {
+            world.core.set_visibility(*entity, Visibility { visible });
+        }
+    }
 }
 
 pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    let node = cobalt_world.resources.viewmodel.node;
-    if cobalt_world.resources.viewmodel.images.is_empty() {
+    if cobalt_world.resources.viewmodel.models.is_empty() {
         return;
     }
     let delta = world.resources.window.timing.delta_time.clamp(0.001, 0.1);
-    let weapon_index = cobalt_world.resources.weapon.current.index();
+    let weapon_index = cobalt_world.resources.weapon.current.index() as i32;
     let recoil = cobalt_world.resources.weapon.recoil;
 
-    // Aim down sights on held right-mouse or gamepad left trigger.
     let mouse_aim = world
         .resources
         .input
@@ -94,22 +234,32 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         * (delta * 14.0).min(1.0);
     let aim = cobalt_world.resources.viewmodel.aim.clamp(0.0, 1.0);
 
-    // Swap the shown image when the weapon or pose changes.
-    let use_ads = aim > 0.5;
-    let key = weapon_index as i32 * 2 + i32::from(use_ads);
-    if cobalt_world.resources.viewmodel.shown != key {
-        let pose = if use_ads {
-            &cobalt_world.resources.viewmodel.images
-        } else {
-            &cobalt_world.resources.viewmodel.hip_images
-        };
-        if let Some(&(layer, uv_min, uv_max)) = pose.get(weapon_index) {
-            set_image(world, node, layer, uv_min, uv_max);
-        }
-        cobalt_world.resources.viewmodel.shown = key;
+    // Weapon-swap animation: lower the held weapon, swap models at the bottom of
+    // the dip, then raise the new one. The first equip snaps in with no dip.
+    if cobalt_world.resources.viewmodel.shown < 0 {
+        set_active(cobalt_world, world, weapon_index);
+        cobalt_world.resources.viewmodel.shown = weapon_index;
+    } else if weapon_index != cobalt_world.resources.viewmodel.shown
+        && cobalt_world.resources.viewmodel.switch <= 0.0
+    {
+        cobalt_world.resources.viewmodel.switch = SWITCH_TIME;
     }
+    cobalt_world.resources.viewmodel.switch =
+        (cobalt_world.resources.viewmodel.switch - delta).max(0.0);
+    let switch = cobalt_world.resources.viewmodel.switch;
+    let phase = 1.0 - switch / SWITCH_TIME;
+    if switch > 0.0 && phase >= 0.5 && cobalt_world.resources.viewmodel.shown != weapon_index {
+        set_active(cobalt_world, world, weapon_index);
+        cobalt_world.resources.viewmodel.shown = weapon_index;
+    }
+    let dip = if switch > 0.0 {
+        (phase * std::f32::consts::PI).sin()
+    } else {
+        0.0
+    };
 
     let position = player::position(cobalt_world, world);
+    let root = cobalt_world.resources.viewmodel.root;
     let viewmodel = &mut cobalt_world.resources.viewmodel;
     let mut moved = position - viewmodel.last_position;
     moved.y = 0.0;
@@ -117,31 +267,30 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
     viewmodel.last_position = position;
     let move_amount = (speed * 0.1).min(1.0);
     viewmodel.bob_phase += delta * (5.0 + speed * 0.6);
-    let bob_x = viewmodel.bob_phase.sin() * 10.0 * move_amount;
-    let bob_y = (viewmodel.bob_phase * 2.0).sin().abs() * 7.0 * move_amount;
+    let bob = vec3(
+        viewmodel.bob_phase.sin() * 0.006 * move_amount,
+        (viewmodel.bob_phase * 2.0).sin().abs() * 0.006 * move_amount,
+        0.0,
+    );
 
-    // Slide from the lower-right hip position toward the raised centre as we aim.
-    let hip = vec2(150.0 + bob_x, 64.0 + bob_y);
-    let ads = vec2(bob_x * 0.25, 8.0 + bob_y * 0.3 + recoil * 36.0);
-    let offset = hip * (1.0 - aim) + ads * aim;
-    set_position(world, node, Rl(vec2(50.0, 100.0)) + Ab(offset));
-}
-
-fn set_image(world: &mut World, entity: Entity, layer: u32, uv_min: Vec2, uv_max: Vec2) {
-    if let Some(content) = world.ui.get_ui_node_content_mut(entity) {
-        *content = UiNodeContent::Image {
-            texture_index: layer,
-            uv_min,
-            uv_max,
-        };
+    // Slide from the lower-right hip hold to centred head-on as we aim; recoil
+    // kicks the model back toward the camera and pitches it up.
+    let base = lerp(&HIP_POS, &ADS_POS, aim);
+    let kick = vec3(0.0, recoil * 0.01, recoil * 0.06);
+    // Dip the weapon down and slightly back during a swap.
+    let drop = vec3(0.0, -dip * 0.34, dip * 0.14);
+    // Aim the barrel (local -Z) at a point straight ahead, so hip-fire points at
+    // the crosshair just like ADS does.
+    let aim_dir = vec3(0.0, 0.0, -CONVERGE_DIST) - base;
+    let horizontal = (aim_dir.x * aim_dir.x + aim_dir.z * aim_dir.z)
+        .sqrt()
+        .max(1e-4);
+    let yaw = (-aim_dir.x).atan2(-aim_dir.z);
+    let pitch = aim_dir.y.atan2(horizontal) + recoil * 0.25 - dip * 0.3;
+    if let Some(transform) = world.core.get_local_transform_mut(root) {
+        transform.translation = base + bob + kick + drop;
+        transform.rotation = quat_angle_axis(yaw, &vec3(0.0, 1.0, 0.0))
+            * quat_angle_axis(pitch, &vec3(1.0, 0.0, 0.0));
     }
-}
-
-fn set_position(world: &mut World, entity: Entity, position: UiValue<Vec2>) {
-    if let Some(node) = world.ui.get_ui_layout_node_mut(entity)
-        && let Some(UiLayoutType::Window(mut window)) = node.base_layout
-    {
-        window.position = position;
-        node.base_layout = Some(UiLayoutType::Window(window));
-    }
+    mark_local_transform_dirty(world, root);
 }
