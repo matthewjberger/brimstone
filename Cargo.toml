@@ -1,16 +1,16 @@
 [package]
-name = "cobalt"
+name = "brimstone"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 edition = "2024"
 
 [lib]
-name = "cobalt_core"
+name = "brimstone_core"
 crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
 
 [[bin]]
-name = "cobalt"
+name = "brimstone"
 path = "src/main.rs"
 
 [dependencies]

@@ -25,7 +25,7 @@ pub const COMBO_SPEED_PER_STEP: f32 = 0.06;
 pub const PAD_RADIUS: f32 = 1.6;
 pub const PAD_IMPULSE: f32 = 13.5;
 
-// Wallrunning (ported from the nightshade movement demo, tuned to cobalt's speed)
+// Wallrunning (ported from the nightshade movement demo, tuned to brimstone's speed)
 pub const WALL_DETECT_DISTANCE: f32 = 0.8;
 pub const WALL_RUN_MIN_SPEED: f32 = 6.0;
 pub const WALL_RUN_DURATION: f32 = 1.5;

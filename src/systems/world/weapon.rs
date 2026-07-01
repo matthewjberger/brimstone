@@ -1,4 +1,4 @@
-use crate::ecs::{CobaltWorld, ENEMY, EnemyState, WeaponKind, WeaponState};
+use crate::ecs::{BrimstoneWorld, ENEMY, EnemyState, WeaponKind, WeaponState};
 use crate::systems::common::random_range;
 use crate::systems::world::{audio, enemies, fx, projectiles, viewmodel};
 use crate::tuning;
@@ -91,17 +91,17 @@ fn weapon_stats(kind: WeaponKind) -> WeaponStats {
     }
 }
 
-pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
+pub fn update(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    cobalt_world.resources.weapon.cooldown =
-        (cobalt_world.resources.weapon.cooldown - delta).max(0.0);
-    cobalt_world.resources.weapon.hit_marker =
-        (cobalt_world.resources.weapon.hit_marker - delta).max(0.0);
-    cobalt_world.resources.weapon.recoil =
-        (cobalt_world.resources.weapon.recoil - delta * 7.0).max(0.0);
+    brimstone_world.resources.weapon.cooldown =
+        (brimstone_world.resources.weapon.cooldown - delta).max(0.0);
+    brimstone_world.resources.weapon.hit_marker =
+        (brimstone_world.resources.weapon.hit_marker - delta).max(0.0);
+    brimstone_world.resources.weapon.recoil =
+        (brimstone_world.resources.weapon.recoil - delta * 7.0).max(0.0);
 
-    switch_weapons(cobalt_world, world);
-    auto_equip_sidearm(&mut cobalt_world.resources.weapon);
+    switch_weapons(brimstone_world, world);
+    auto_equip_sidearm(&mut brimstone_world.resources.weapon);
 
     let mouse_fire = world
         .resources
@@ -116,33 +116,33 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
 
     // The tesla is a held beam, not a discrete shot: it runs its own logic every
     // frame (to keep the arc alive and to stop it the instant you release).
-    if cobalt_world.resources.weapon.current == WeaponKind::Tesla {
-        tesla_beam(cobalt_world, world, firing);
+    if brimstone_world.resources.weapon.current == WeaponKind::Tesla {
+        tesla_beam(brimstone_world, world, firing);
         return;
     }
 
-    if !firing || cobalt_world.resources.weapon.cooldown > 0.0 {
+    if !firing || brimstone_world.resources.weapon.cooldown > 0.0 {
         return;
     }
 
-    let kind = cobalt_world.resources.weapon.current;
+    let kind = brimstone_world.resources.weapon.current;
 
-    if !kind.infinite() && cobalt_world.resources.weapon.ammo(kind) == 0 {
-        cobalt_world.resources.weapon.cooldown = 0.2;
-        audio::play(cobalt_world, world, audio::EMPTY, 0.5);
+    if !kind.infinite() && brimstone_world.resources.weapon.ammo(kind) == 0 {
+        brimstone_world.resources.weapon.cooldown = 0.2;
+        audio::play(brimstone_world, world, audio::EMPTY, 0.5);
         return;
     }
 
     let stats = weapon_stats(kind);
 
     if !kind.infinite() {
-        *cobalt_world.resources.weapon.ammo_mut(kind) -= 1;
+        *brimstone_world.resources.weapon.ammo_mut(kind) -= 1;
     }
-    cobalt_world.resources.weapon.cooldown = stats.cooldown;
-    cobalt_world.resources.weapon.recoil = 1.0;
-    cobalt_world.resources.game.shake += stats.shake;
-    cobalt_world.resources.game.cam_kick += stats.kick;
-    cobalt_world.resources.game.fov_pop = cobalt_world.resources.game.fov_pop.max(stats.fov_pop);
+    brimstone_world.resources.weapon.cooldown = stats.cooldown;
+    brimstone_world.resources.weapon.recoil = 1.0;
+    brimstone_world.resources.game.shake += stats.shake;
+    brimstone_world.resources.game.cam_kick += stats.kick;
+    brimstone_world.resources.game.fov_pop = brimstone_world.resources.game.fov_pop.max(stats.fov_pop);
     let (sound, sound_volume) = match kind {
         WeaponKind::Shotgun => (audio::SHOTGUN, 0.9),
         WeaponKind::Nailgun => (audio::NAILGUN, 0.4),
@@ -151,14 +151,14 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         WeaponKind::Pistol => (audio::NAILGUN, 0.5),
         WeaponKind::Tesla => (audio::RAILGUN, 0.7),
     };
-    audio::play(cobalt_world, world, sound, sound_volume);
+    audio::play(brimstone_world, world, sound, sound_volume);
 
-    let Some((origin, forward, right, up)) = camera_frame(cobalt_world, world) else {
+    let Some((origin, forward, right, up)) = camera_frame(brimstone_world, world) else {
         return;
     };
     let muzzle = origin + forward * 0.6 - up * 0.12 + right * 0.12;
     fx::muzzle(
-        cobalt_world,
+        brimstone_world,
         world,
         muzzle,
         forward,
@@ -166,14 +166,14 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
     );
 
     if matches!(kind, WeaponKind::Rocket) {
-        projectiles::spawn_rocket(cobalt_world, world, muzzle, forward);
+        projectiles::spawn_rocket(brimstone_world, world, muzzle, forward);
         return;
     }
 
-    let targets: Vec<(Entity, Vec3, f32)> = cobalt_world
+    let targets: Vec<(Entity, Vec3, f32)> = brimstone_world
         .query_entities(ENEMY)
         .filter_map(|game_entity| {
-            let enemy = cobalt_world.get_enemy(game_entity)?;
+            let enemy = brimstone_world.get_enemy(game_entity)?;
             if enemy.state == EnemyState::Dying {
                 None
             } else {
@@ -183,7 +183,7 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         })
         .collect();
 
-    let player = cobalt_world.resources.player.player_entity;
+    let player = brimstone_world.resources.player.player_entity;
     let mut connected = false;
 
     if matches!(kind, WeaponKind::Railgun) {
@@ -209,11 +209,11 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         }
 
         let end = origin + direction * wall_distance;
-        fx::tracer(cobalt_world, world, muzzle, end, stats.tracer);
+        fx::tracer(brimstone_world, world, muzzle, end, stats.tracer);
         let hit_anything = !hits.is_empty();
         for (game_entity, point) in hits {
             enemies::damage(
-                cobalt_world,
+                brimstone_world,
                 world,
                 game_entity,
                 stats.damage,
@@ -222,8 +222,8 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
             );
         }
         if hit_anything {
-            cobalt_world.resources.weapon.hit_marker = 0.12;
-            cobalt_world.resources.game.hitstop = cobalt_world
+            brimstone_world.resources.weapon.hit_marker = 0.12;
+            brimstone_world.resources.game.hitstop = brimstone_world
                 .resources
                 .game
                 .hitstop
@@ -241,12 +241,12 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
             let jitter = stats.spread;
             (
                 random_range(
-                    &mut cobalt_world.resources.game.random_state,
+                    &mut brimstone_world.resources.game.random_state,
                     -jitter,
                     jitter,
                 ),
                 random_range(
-                    &mut cobalt_world.resources.game.random_state,
+                    &mut brimstone_world.resources.game.random_state,
                     -jitter,
                     jitter,
                 ),
@@ -277,9 +277,9 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
 
         if let Some((game_entity, distance)) = best {
             let point = origin + direction * distance;
-            fx::tracer(cobalt_world, world, muzzle, point, stats.tracer);
+            fx::tracer(brimstone_world, world, muzzle, point, stats.tracer);
             enemies::damage(
-                cobalt_world,
+                brimstone_world,
                 world,
                 game_entity,
                 stats.damage,
@@ -289,14 +289,14 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
             connected = true;
         } else {
             let end = origin + direction * wall_distance;
-            fx::tracer(cobalt_world, world, muzzle, end, stats.tracer);
+            fx::tracer(brimstone_world, world, muzzle, end, stats.tracer);
         }
     }
 
     if connected {
-        cobalt_world.resources.weapon.hit_marker = 0.12;
+        brimstone_world.resources.weapon.hit_marker = 0.12;
         if matches!(kind, WeaponKind::Shotgun) {
-            cobalt_world.resources.game.hitstop = cobalt_world
+            brimstone_world.resources.game.hitstop = brimstone_world
                 .resources
                 .game
                 .hitstop
@@ -310,32 +310,32 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
 /// nearest few, redrawing the bolt every frame so it crackles continuously.
 /// Damage and ammo are spent in rapid ticks (not every frame) so hit feedback
 /// fires at a sane rate; releasing the trigger stops it instantly.
-fn tesla_beam(cobalt_world: &mut CobaltWorld, world: &mut World, firing: bool) {
+fn tesla_beam(brimstone_world: &mut BrimstoneWorld, world: &mut World, firing: bool) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    cobalt_world.resources.weapon.tesla_tick =
-        (cobalt_world.resources.weapon.tesla_tick - delta).max(0.0);
+    brimstone_world.resources.weapon.tesla_tick =
+        (brimstone_world.resources.weapon.tesla_tick - delta).max(0.0);
 
     if !firing {
         return;
     }
 
-    if cobalt_world.resources.weapon.ammo(WeaponKind::Tesla) == 0 {
-        if cobalt_world.resources.weapon.tesla_tick <= 0.0 {
-            cobalt_world.resources.weapon.tesla_tick = 0.3;
-            audio::play(cobalt_world, world, audio::EMPTY, 0.4);
+    if brimstone_world.resources.weapon.ammo(WeaponKind::Tesla) == 0 {
+        if brimstone_world.resources.weapon.tesla_tick <= 0.0 {
+            brimstone_world.resources.weapon.tesla_tick = 0.3;
+            audio::play(brimstone_world, world, audio::EMPTY, 0.4);
         }
         return;
     }
 
-    let Some((origin, forward, right, up)) = camera_frame(cobalt_world, world) else {
+    let Some((origin, forward, right, up)) = camera_frame(brimstone_world, world) else {
         return;
     };
-    let muzzle = viewmodel::muzzle(cobalt_world, origin, forward, right, up);
+    let muzzle = viewmodel::muzzle(brimstone_world, origin, forward, right, up);
 
-    let targets: Vec<(Entity, Vec3)> = cobalt_world
+    let targets: Vec<(Entity, Vec3)> = brimstone_world
         .query_entities(ENEMY)
         .filter_map(|game_entity| {
-            let enemy = cobalt_world.get_enemy(game_entity)?;
+            let enemy = brimstone_world.get_enemy(game_entity)?;
             if enemy.state == EnemyState::Dying {
                 None
             } else {
@@ -376,24 +376,24 @@ fn tesla_beam(cobalt_world: &mut CobaltWorld, world: &mut World, firing: bool) {
     let color = vec3(0.55, 1.0, 2.8);
     let mut from = muzzle;
     for (_, point) in &hits {
-        fx::lightning(cobalt_world, world, from, *point, color, 0.06);
+        fx::lightning(brimstone_world, world, from, *point, color, 0.06);
         from = *point;
     }
-    cobalt_world.resources.weapon.recoil = 0.35;
+    brimstone_world.resources.weapon.recoil = 0.35;
 
-    if cobalt_world.resources.weapon.tesla_tick > 0.0 {
+    if brimstone_world.resources.weapon.tesla_tick > 0.0 {
         return;
     }
-    cobalt_world.resources.weapon.tesla_tick = tuning::TESLA_TICK;
-    let remaining = cobalt_world
+    brimstone_world.resources.weapon.tesla_tick = tuning::TESLA_TICK;
+    let remaining = brimstone_world
         .resources
         .weapon
         .ammo(WeaponKind::Tesla)
         .saturating_sub(1);
-    *cobalt_world.resources.weapon.ammo_mut(WeaponKind::Tesla) = remaining;
+    *brimstone_world.resources.weapon.ammo_mut(WeaponKind::Tesla) = remaining;
     for (entity, point) in &hits {
         enemies::damage(
-            cobalt_world,
+            brimstone_world,
             world,
             *entity,
             tuning::TESLA_TICK_DAMAGE,
@@ -401,12 +401,12 @@ fn tesla_beam(cobalt_world: &mut CobaltWorld, world: &mut World, firing: bool) {
             forward * tuning::TESLA_KNOCKBACK,
         );
     }
-    cobalt_world.resources.weapon.hit_marker = 0.12;
-    cobalt_world.resources.game.shake += tuning::TESLA_SHAKE;
-    audio::play(cobalt_world, world, audio::RAILGUN, 0.3);
+    brimstone_world.resources.weapon.hit_marker = 0.12;
+    brimstone_world.resources.game.shake += tuning::TESLA_SHAKE;
+    audio::play(brimstone_world, world, audio::RAILGUN, 0.3);
 }
 
-fn switch_weapons(cobalt_world: &mut CobaltWorld, world: &World) {
+fn switch_weapons(brimstone_world: &mut BrimstoneWorld, world: &World) {
     let keyboard = &world.resources.input.keyboard;
     let direct = [
         (KeyCode::Digit1, WeaponKind::Shotgun),
@@ -418,18 +418,18 @@ fn switch_weapons(cobalt_world: &mut CobaltWorld, world: &World) {
     ];
     for (key, weapon) in direct {
         if keyboard.just_pressed(key) {
-            cobalt_world.resources.weapon.current = weapon;
+            brimstone_world.resources.weapon.current = weapon;
             return;
         }
     }
 
     let gamepad = &world.resources.input.gamepad.just_pressed_buttons;
     let scroll = world.resources.input.mouse.wheel_delta.y;
-    let current = cobalt_world.resources.weapon.current;
+    let current = brimstone_world.resources.weapon.current;
     if gamepad.contains(&gilrs::Button::DPadUp) || scroll > 0.5 {
-        cobalt_world.resources.weapon.current = cycle_weapon(current, 1);
+        brimstone_world.resources.weapon.current = cycle_weapon(current, 1);
     } else if gamepad.contains(&gilrs::Button::DPadDown) || scroll < -0.5 {
-        cobalt_world.resources.weapon.current = cycle_weapon(current, -1);
+        brimstone_world.resources.weapon.current = cycle_weapon(current, -1);
     }
 }
 
@@ -458,8 +458,8 @@ fn auto_equip_sidearm(weapon: &mut WeaponState) {
     }
 }
 
-fn camera_frame(cobalt_world: &CobaltWorld, world: &World) -> Option<(Vec3, Vec3, Vec3, Vec3)> {
-    let camera = cobalt_world.resources.player.camera_entity?;
+fn camera_frame(brimstone_world: &BrimstoneWorld, world: &World) -> Option<(Vec3, Vec3, Vec3, Vec3)> {
+    let camera = brimstone_world.resources.player.camera_entity?;
     let transform = world.core.get_global_transform(camera)?;
     Some((
         transform.translation(),

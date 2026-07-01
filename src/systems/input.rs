@@ -1,9 +1,9 @@
-use crate::ecs::{AdvPanel, CobaltWorld, Phase, Screen};
+use crate::ecs::{AdvPanel, BrimstoneWorld, Phase, Screen};
 use crate::systems::lifecycle;
 use crate::systems::world::game;
 use nightshade::prelude::*;
 
-pub fn handle_global(cobalt_world: &mut CobaltWorld, world: &mut World) {
+pub fn handle_global(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let escape = world.resources.input.keyboard.just_pressed(KeyCode::Escape);
     let restart = world.resources.input.keyboard.just_pressed(KeyCode::KeyR);
     let start = world
@@ -18,9 +18,9 @@ pub fn handle_global(cobalt_world: &mut CobaltWorld, world: &mut World) {
         .gamepad
         .just_pressed_buttons
         .contains(&gilrs::Button::South);
-    let phase = cobalt_world.resources.game.phase;
+    let phase = brimstone_world.resources.game.phase;
 
-    match cobalt_world.resources.screen.current {
+    match brimstone_world.resources.screen.current {
         Screen::Title => {
             if escape {
                 world.resources.window.should_exit = true;
@@ -28,40 +28,40 @@ pub fn handle_global(cobalt_world: &mut CobaltWorld, world: &mut World) {
         }
         Screen::LevelSelect => {
             if escape {
-                lifecycle::enter(cobalt_world, world, Screen::Title);
+                lifecycle::enter(brimstone_world, world, Screen::Title);
             }
         }
         Screen::MissionSelect => {
             if escape {
-                lifecycle::enter(cobalt_world, world, Screen::Title);
+                lifecycle::enter(brimstone_world, world, Screen::Title);
             }
         }
         Screen::InGame => {
             if escape || start {
-                lifecycle::enter(cobalt_world, world, Screen::Paused);
+                lifecycle::enter(brimstone_world, world, Screen::Paused);
             } else if restart || (confirm && !matches!(phase, Phase::Playing)) {
-                game::restart_current(cobalt_world, world);
-                lifecycle::enter(cobalt_world, world, Screen::InGame);
+                game::restart_current(brimstone_world, world);
+                lifecycle::enter(brimstone_world, world, Screen::InGame);
             }
         }
         Screen::Paused => {
             if escape || start {
-                lifecycle::enter(cobalt_world, world, Screen::InGame);
+                lifecycle::enter(brimstone_world, world, Screen::InGame);
             }
         }
         Screen::Editor => {
             if escape {
-                crate::systems::editor::teardown(cobalt_world, world);
-                cobalt_world.resources.editor.active = false;
-                game::start_at(cobalt_world, world, 0);
-                lifecycle::enter(cobalt_world, world, Screen::Title);
+                crate::systems::editor::teardown(brimstone_world, world);
+                brimstone_world.resources.editor.active = false;
+                game::start_at(brimstone_world, world, 0);
+                lifecycle::enter(brimstone_world, world, Screen::Title);
             }
         }
         Screen::Adventure => {
             // Esc closes an open menu (handled in the adventure update); with no
             // menu open it leaves to the title screen.
-            if (escape || start) && cobalt_world.resources.adventure.panel == AdvPanel::None {
-                crate::adventure::leave(cobalt_world, world);
+            if (escape || start) && brimstone_world.resources.adventure.panel == AdvPanel::None {
+                crate::adventure::leave(brimstone_world, world);
             }
         }
         Screen::Cutscene => {}

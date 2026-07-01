@@ -1,7 +1,7 @@
 //! Full-screen narrative cutscene: a title, a body of story text, and a prompt
 //! to continue. Advancing is driven by the story director.
 
-use crate::ecs::{CobaltWorld, CutsceneHandles, Screen};
+use crate::ecs::{BrimstoneWorld, CutsceneHandles, Screen};
 use crate::systems::story;
 use crate::theme::*;
 use nightshade::prelude::*;
@@ -72,14 +72,14 @@ pub fn build(tree: &mut UiTreeBuilder) -> CutsceneHandles {
 
 const REVEAL_CHARS_PER_SECOND: f32 = 48.0;
 
-pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    if !matches!(cobalt_world.resources.screen.current, Screen::Cutscene) {
+pub fn update(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    if !matches!(brimstone_world.resources.screen.current, Screen::Cutscene) {
         return;
     }
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    cobalt_world.resources.story.reveal += delta * REVEAL_CHARS_PER_SECOND;
-    let handles = cobalt_world.resources.ui_handles.cutscene;
-    let story = &cobalt_world.resources.story;
+    brimstone_world.resources.story.reveal += delta * REVEAL_CHARS_PER_SECOND;
+    let handles = brimstone_world.resources.ui_handles.cutscene;
+    let story = &brimstone_world.resources.story;
     if let Some(slide) = story.slides.get(story.slide_index) {
         let revealed = (story.reveal as usize).min(slide.body.chars().count());
         let shown: String = slide.body.chars().take(revealed).collect();
@@ -88,8 +88,8 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
     }
 }
 
-pub fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    if !matches!(cobalt_world.resources.screen.current, Screen::Cutscene) {
+pub fn handle_input(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    if !matches!(brimstone_world.resources.screen.current, Screen::Cutscene) {
         return;
     }
     let keyboard = &world.resources.input.keyboard;
@@ -105,15 +105,15 @@ pub fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World) {
         return;
     }
     // First press finishes the typewriter; the next advances the cutscene.
-    let story = &cobalt_world.resources.story;
+    let story = &brimstone_world.resources.story;
     let full = story
         .slides
         .get(story.slide_index)
         .map(|slide| slide.body.chars().count())
         .unwrap_or(0);
     if (story.reveal as usize) < full {
-        cobalt_world.resources.story.reveal = full as f32;
+        brimstone_world.resources.story.reveal = full as f32;
     } else {
-        story::advance(cobalt_world, world);
+        story::advance(brimstone_world, world);
     }
 }

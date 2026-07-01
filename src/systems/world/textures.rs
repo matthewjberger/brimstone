@@ -10,28 +10,28 @@ use nightshade::render::wgpu::texture_cache::{
     SamplerSettings, TextureUsage, texture_cache_protect,
 };
 
-pub const FLOOR_TEXTURE: &str = "cobalt_floor";
-pub const WALL_TEXTURE: &str = "cobalt_wall";
-pub const PLATFORM_TEXTURE: &str = "cobalt_platform";
-pub const PILLAR_TEXTURE: &str = "cobalt_pillar";
-pub const ACCENT_TEXTURE: &str = "cobalt_accent";
+pub const FLOOR_TEXTURE: &str = "brimstone_floor";
+pub const WALL_TEXTURE: &str = "brimstone_wall";
+pub const PLATFORM_TEXTURE: &str = "brimstone_platform";
+pub const PILLAR_TEXTURE: &str = "brimstone_pillar";
+pub const ACCENT_TEXTURE: &str = "brimstone_accent";
 
-pub const MAT_FIREBALL: &str = "cobalt_mat_fireball";
-pub const MAT_ROCKET: &str = "cobalt_mat_rocket";
-pub const MAT_MEDKIT: &str = "cobalt_mat_medkit";
-pub const MAT_AMMO: &str = "cobalt_mat_ammo";
-pub const MAT_KEYCARD: &str = "cobalt_mat_keycard";
-pub const MAT_EXIT: &str = "cobalt_mat_exit";
-pub const PAD_MATERIAL: &str = "cobalt_mat_pad";
-pub const MARKER_PLAYER: &str = "cobalt_mat_marker_player";
-pub const MARKER_ENEMY: &str = "cobalt_mat_marker_enemy";
-pub const MAT_GHOST: &str = "cobalt_mat_ghost";
-pub const MAT_NPC_VILLAGER: &str = "cobalt_mat_npc_villager";
-pub const MAT_NPC_MERCHANT: &str = "cobalt_mat_npc_merchant";
-pub const MAT_NPC_ELDER: &str = "cobalt_mat_npc_elder";
-pub const MAT_NPC_GUARD: &str = "cobalt_mat_npc_guard";
+pub const MAT_FIREBALL: &str = "brimstone_mat_fireball";
+pub const MAT_ROCKET: &str = "brimstone_mat_rocket";
+pub const MAT_MEDKIT: &str = "brimstone_mat_medkit";
+pub const MAT_AMMO: &str = "brimstone_mat_ammo";
+pub const MAT_KEYCARD: &str = "brimstone_mat_keycard";
+pub const MAT_EXIT: &str = "brimstone_mat_exit";
+pub const PAD_MATERIAL: &str = "brimstone_mat_pad";
+pub const MARKER_PLAYER: &str = "brimstone_mat_marker_player";
+pub const MARKER_ENEMY: &str = "brimstone_mat_marker_enemy";
+pub const MAT_GHOST: &str = "brimstone_mat_ghost";
+pub const MAT_NPC_VILLAGER: &str = "brimstone_mat_npc_villager";
+pub const MAT_NPC_MERCHANT: &str = "brimstone_mat_npc_merchant";
+pub const MAT_NPC_ELDER: &str = "brimstone_mat_npc_elder";
+pub const MAT_NPC_GUARD: &str = "brimstone_mat_npc_guard";
 
-pub const BILLBOARD_MESH: &str = "cobalt_billboard";
+pub const BILLBOARD_MESH: &str = "brimstone_billboard";
 
 const PROTOTYPE_TEXTURES: &[(&str, &[u8])] = &[
     (
@@ -81,24 +81,24 @@ pub fn load(world: &mut World) {
         art::sentinel_hurt(),
     );
 
-    upload_sprite(world, "cobalt_fireball", art::fireball());
-    upload_sprite(world, "cobalt_rocket", art::rocket());
-    upload_sprite(world, "cobalt_medkit", art::medkit());
-    upload_sprite(world, "cobalt_ammo", art::ammo_box());
-    upload_sprite(world, "cobalt_keycard", art::keycard());
+    upload_sprite(world, "brimstone_fireball", art::fireball());
+    upload_sprite(world, "brimstone_rocket", art::rocket());
+    upload_sprite(world, "brimstone_medkit", art::medkit());
+    upload_sprite(world, "brimstone_ammo", art::ammo_box());
+    upload_sprite(world, "brimstone_keycard", art::keycard());
 
-    register_material(world, MAT_FIREBALL, glow_material("cobalt_fireball"));
+    register_material(world, MAT_FIREBALL, glow_material("brimstone_fireball"));
     register_material(
         world,
         MAT_ROCKET,
-        glow_material_tinted("cobalt_rocket", [0.4, 0.7, 1.0]),
+        glow_material_tinted("brimstone_rocket", [0.4, 0.7, 1.0]),
     );
-    register_material(world, MAT_MEDKIT, sprite_material("cobalt_medkit"));
-    register_material(world, MAT_AMMO, sprite_material("cobalt_ammo"));
+    register_material(world, MAT_MEDKIT, sprite_material("brimstone_medkit"));
+    register_material(world, MAT_AMMO, sprite_material("brimstone_ammo"));
     register_material(
         world,
         MAT_KEYCARD,
-        glow_material_tinted("cobalt_keycard", [1.0, 0.85, 0.2]),
+        glow_material_tinted("brimstone_keycard", [1.0, 0.85, 0.2]),
     );
     register_material(world, MAT_EXIT, beacon_material(vec3(0.3, 1.8, 0.7), 5.0));
     register_material(
@@ -119,10 +119,10 @@ pub fn load(world: &mut World) {
     register_material(world, MAT_GHOST, ghost_material());
 
     for (texture, name, sprite) in [
-        ("cobalt_npc_villager", MAT_NPC_VILLAGER, art::npc_villager()),
-        ("cobalt_npc_merchant", MAT_NPC_MERCHANT, art::npc_merchant()),
-        ("cobalt_npc_elder", MAT_NPC_ELDER, art::npc_elder()),
-        ("cobalt_npc_guard", MAT_NPC_GUARD, art::npc_guard()),
+        ("brimstone_npc_villager", MAT_NPC_VILLAGER, art::npc_villager()),
+        ("brimstone_npc_merchant", MAT_NPC_MERCHANT, art::npc_merchant()),
+        ("brimstone_npc_elder", MAT_NPC_ELDER, art::npc_elder()),
+        ("brimstone_npc_guard", MAT_NPC_GUARD, art::npc_guard()),
     ] {
         upload_sprite(world, texture, sprite);
         register_material(world, name, sprite_material(texture));
@@ -173,24 +173,24 @@ fn register_material(world: &mut World, name: &str, material: Material) {
 /// material and an emissive `_e` variant for elites, plus one shared hurt flash.
 fn register_animated(world: &mut World, key: &str, base: art::Sprite, hurt: art::Sprite) {
     for index in 0..art::ANIM_FRAMES {
-        let texture = format!("cobalt_{key}_f{index}");
+        let texture = format!("brimstone_{key}_f{index}");
         upload_sprite(world, &texture, art::frame(&base, index));
         register_material(
             world,
-            &format!("cobalt_mat_{key}_f{index}"),
+            &format!("brimstone_mat_{key}_f{index}"),
             sprite_material(&texture),
         );
         register_material(
             world,
-            &format!("cobalt_mat_{key}_f{index}_e"),
+            &format!("brimstone_mat_{key}_f{index}_e"),
             hurt_material(&texture),
         );
     }
-    let hurt_texture = format!("cobalt_{key}_hurt");
+    let hurt_texture = format!("brimstone_{key}_hurt");
     upload_sprite(world, &hurt_texture, hurt);
     register_material(
         world,
-        &format!("cobalt_mat_{key}_hurt"),
+        &format!("brimstone_mat_{key}_hurt"),
         hurt_material(&hurt_texture),
     );
 }

@@ -1,4 +1,4 @@
-use crate::ecs::CobaltWorld;
+use crate::ecs::BrimstoneWorld;
 use crate::systems::common::{approach, combo_multiplier};
 use crate::systems::world::audio;
 use crate::systems::world::level::PLAYER_SPAWN;
@@ -16,7 +16,7 @@ const BOB_VERTICAL: f32 = 0.05;
 const BOB_HORIZONTAL: f32 = 0.035;
 const SHAKE_Z: f32 = 0.6;
 
-pub fn spawn(cobalt_world: &mut CobaltWorld, world: &mut World) {
+pub fn spawn(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let (player, camera) = spawn_first_person_player(world, PLAYER_SPAWN);
     if let Some(controller) = world.core.get_character_controller_mut(player) {
         controller.engine_input_enabled = false;
@@ -34,18 +34,18 @@ pub fn spawn(cobalt_world: &mut CobaltWorld, world: &mut World) {
             aspect_ratio: None,
         });
     }
-    cobalt_world.resources.player.player_entity = Some(player);
-    cobalt_world.resources.player.camera_entity = Some(camera);
+    brimstone_world.resources.player.player_entity = Some(player);
+    brimstone_world.resources.player.camera_entity = Some(camera);
     world.resources.active_camera = Some(camera);
 }
 
-pub fn movement(cobalt_world: &mut CobaltWorld, world: &mut World) {
+pub fn movement(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    let Some(player) = cobalt_world.resources.player.player_entity else {
+    let Some(player) = brimstone_world.resources.player.player_entity else {
         return;
     };
 
-    let state = &mut cobalt_world.resources.player;
+    let state = &mut brimstone_world.resources.player;
     state.dash_cooldown = (state.dash_cooldown - delta).max(0.0);
     state.iframes = (state.iframes - delta).max(0.0);
     state.wall_run_cooldown = (state.wall_run_cooldown - delta).max(0.0);
@@ -60,9 +60,9 @@ pub fn movement(cobalt_world: &mut CobaltWorld, world: &mut World) {
         keyboard.is_key_pressed(KeyCode::KeyD),
         keyboard.is_key_pressed(KeyCode::KeyA),
     );
-    let grace = cobalt_world.resources.player.spawn_grace > 0;
+    let grace = brimstone_world.resources.player.spawn_grace > 0;
     if grace {
-        cobalt_world.resources.player.spawn_grace -= 1;
+        brimstone_world.resources.player.spawn_grace -= 1;
     }
     let mut jump = !grace && keyboard.just_pressed(KeyCode::Space);
     let mut dash_pressed = !grace
@@ -97,7 +97,7 @@ pub fn movement(cobalt_world: &mut CobaltWorld, world: &mut World) {
                 .just_pressed_buttons
                 .contains(&gilrs::Button::East));
 
-    let (forward, right) = camera_basis(cobalt_world, world);
+    let (forward, right) = camera_basis(brimstone_world, world);
     let mut wishdir = forward * forward_input + right * strafe_input;
     let input_length = wishdir.norm();
     let input_scale = input_length.min(1.0);
@@ -107,7 +107,7 @@ pub fn movement(cobalt_world: &mut CobaltWorld, world: &mut World) {
         wishdir = Vec3::zeros();
     }
 
-    let player_position = position(cobalt_world, world);
+    let player_position = position(brimstone_world, world);
 
     let Some(controller) = world.core.get_character_controller(player) else {
         return;
@@ -115,28 +115,28 @@ pub fn movement(cobalt_world: &mut CobaltWorld, world: &mut World) {
     let grounded = controller.grounded;
     let mut velocity = controller.velocity;
 
-    let dashing = cobalt_world.resources.player.dash_timer > 0.0;
+    let dashing = brimstone_world.resources.player.dash_timer > 0.0;
     if dashing {
-        cobalt_world.resources.player.dash_timer -= delta;
-        let dash_dir = cobalt_world.resources.player.dash_dir;
+        brimstone_world.resources.player.dash_timer -= delta;
+        let dash_dir = brimstone_world.resources.player.dash_dir;
         velocity.x = dash_dir.x * tuning::DASH_SPEED;
         velocity.z = dash_dir.z * tuning::DASH_SPEED;
-    } else if dash_pressed && cobalt_world.resources.player.dash_cooldown <= 0.0 {
+    } else if dash_pressed && brimstone_world.resources.player.dash_cooldown <= 0.0 {
         let dash_dir = if wishdir.norm() > 0.1 {
             wishdir
         } else {
             forward
         };
-        cobalt_world.resources.player.dash_dir = dash_dir;
-        cobalt_world.resources.player.dash_timer = tuning::DASH_TIME;
-        cobalt_world.resources.player.dash_cooldown = tuning::DASH_COOLDOWN;
-        cobalt_world.resources.player.iframes = tuning::DASH_IFRAMES;
-        cobalt_world.resources.game.shake += tuning::DASH_SHAKE;
-        audio::play(cobalt_world, world, audio::DASH, 0.7);
+        brimstone_world.resources.player.dash_dir = dash_dir;
+        brimstone_world.resources.player.dash_timer = tuning::DASH_TIME;
+        brimstone_world.resources.player.dash_cooldown = tuning::DASH_COOLDOWN;
+        brimstone_world.resources.player.iframes = tuning::DASH_IFRAMES;
+        brimstone_world.resources.game.shake += tuning::DASH_SHAKE;
+        audio::play(brimstone_world, world, audio::DASH, 0.7);
         velocity.x = dash_dir.x * tuning::DASH_SPEED;
         velocity.z = dash_dir.z * tuning::DASH_SPEED;
     } else {
-        let multiplier = combo_multiplier(cobalt_world.resources.game.combo);
+        let multiplier = combo_multiplier(brimstone_world.resources.game.combo);
         let ground_speed = tuning::MOVE_SPEED
             * (1.0 + tuning::COMBO_SPEED_PER_STEP * (multiplier.saturating_sub(1)) as f32);
         let mut horizontal = vec3(velocity.x, 0.0, velocity.z);
@@ -158,9 +158,9 @@ pub fn movement(cobalt_world: &mut CobaltWorld, world: &mut World) {
         velocity.z = horizontal.z;
     }
 
-    let prev_wall_side = cobalt_world.resources.player.wall_run_side;
+    let prev_wall_side = brimstone_world.resources.player.wall_run_side;
     let wall_jumped = apply_wallrun(
-        cobalt_world,
+        brimstone_world,
         world,
         &mut velocity,
         &WallrunInput {
@@ -174,19 +174,19 @@ pub fn movement(cobalt_world: &mut CobaltWorld, world: &mut World) {
             delta,
         },
     );
-    if prev_wall_side == 0 && cobalt_world.resources.player.wall_run_side != 0 {
-        audio::play(cobalt_world, world, audio::DASH, 0.5);
+    if prev_wall_side == 0 && brimstone_world.resources.player.wall_run_side != 0 {
+        audio::play(brimstone_world, world, audio::DASH, 0.5);
     }
 
     if grounded && jump && !wall_jumped {
         velocity.y = tuning::JUMP_IMPULSE;
     }
 
-    let launched = grounded && pad_launch(cobalt_world, player_position);
+    let launched = grounded && pad_launch(brimstone_world, player_position);
     if launched {
         velocity.y = velocity.y.max(tuning::PAD_IMPULSE);
-        cobalt_world.resources.game.shake += tuning::DASH_SHAKE;
-        audio::play(cobalt_world, world, audio::PAD, 0.6);
+        brimstone_world.resources.game.shake += tuning::DASH_SHAKE;
+        audio::play(brimstone_world, world, audio::PAD, 0.6);
     }
 
     if let Some(controller) = world.core.get_character_controller_mut(player) {
@@ -219,8 +219,8 @@ fn apply_friction(velocity: Vec3, delta: f32) -> Vec3 {
     velocity * (speed - drop).max(0.0) / speed
 }
 
-fn pad_launch(cobalt_world: &CobaltWorld, player_position: Vec3) -> bool {
-    cobalt_world.resources.level.pads.iter().any(|pad| {
+fn pad_launch(brimstone_world: &BrimstoneWorld, player_position: Vec3) -> bool {
+    brimstone_world.resources.level.pads.iter().any(|pad| {
         let dx = player_position.x - pad.x;
         let dz = player_position.z - pad.z;
         (dx * dx + dz * dz).sqrt() < tuning::PAD_RADIUS
@@ -241,20 +241,20 @@ struct WallrunInput {
 /// Stick to a wall mid-air and run along it, with a slow controlled fall and an
 /// explosive wall-jump off it. Mirrors the nightshade movement demo's wallrun.
 fn apply_wallrun(
-    cobalt_world: &mut CobaltWorld,
+    brimstone_world: &mut BrimstoneWorld,
     world: &World,
     velocity: &mut Vec3,
     input: &WallrunInput,
 ) -> bool {
     if input.grounded || input.dashing {
-        cobalt_world.resources.player.wall_run_side = 0;
+        brimstone_world.resources.player.wall_run_side = 0;
         return false;
     }
 
     let speed = (velocity.x * velocity.x + velocity.z * velocity.z).sqrt();
 
-    if cobalt_world.resources.player.wall_run_side != 0 && input.jump {
-        let normal = cobalt_world.resources.player.wall_run_normal;
+    if brimstone_world.resources.player.wall_run_side != 0 && input.jump {
+        let normal = brimstone_world.resources.player.wall_run_normal;
         let mut flat = vec3(normal.x, 0.0, normal.z);
         flat = if flat.norm() > 1e-3 {
             flat.normalize()
@@ -266,15 +266,15 @@ fn apply_wallrun(
         velocity.z =
             flat.z * tuning::WALL_JUMP_LATERAL + input.forward.z * tuning::WALL_JUMP_FORWARD;
         velocity.y = tuning::WALL_JUMP_VERTICAL;
-        let state = &mut cobalt_world.resources.player;
+        let state = &mut brimstone_world.resources.player;
         state.wall_run_side = 0;
         state.wall_run_timer = 0.0;
         state.wall_run_cooldown = tuning::WALL_RUN_COOLDOWN;
         return true;
     }
 
-    if cobalt_world.resources.player.wall_run_cooldown > 0.0 || speed < tuning::WALL_RUN_MIN_SPEED {
-        clear_wallrun(cobalt_world);
+    if brimstone_world.resources.player.wall_run_cooldown > 0.0 || speed < tuning::WALL_RUN_MIN_SPEED {
+        clear_wallrun(brimstone_world);
         return false;
     }
 
@@ -285,19 +285,19 @@ fn apply_wallrun(
     } else if let Some(normal) = cast_wall(world, origin, -input.right, ignore) {
         (-1i8, normal)
     } else {
-        clear_wallrun(cobalt_world);
+        clear_wallrun(brimstone_world);
         return false;
     };
 
-    let changed = cobalt_world.resources.player.wall_run_side != side;
+    let changed = brimstone_world.resources.player.wall_run_side != side;
     if changed {
-        cobalt_world.resources.player.wall_run_timer = tuning::WALL_RUN_DURATION;
+        brimstone_world.resources.player.wall_run_timer = tuning::WALL_RUN_DURATION;
     }
-    cobalt_world.resources.player.wall_run_side = side;
-    cobalt_world.resources.player.wall_run_normal = normal;
+    brimstone_world.resources.player.wall_run_side = side;
+    brimstone_world.resources.player.wall_run_normal = normal;
 
-    if cobalt_world.resources.player.wall_run_timer <= 0.0 {
-        clear_wallrun(cobalt_world);
+    if brimstone_world.resources.player.wall_run_timer <= 0.0 {
+        clear_wallrun(brimstone_world);
         return false;
     }
 
@@ -318,10 +318,10 @@ fn apply_wallrun(
     false
 }
 
-fn clear_wallrun(cobalt_world: &mut CobaltWorld) {
-    if cobalt_world.resources.player.wall_run_side != 0 {
-        cobalt_world.resources.player.wall_run_side = 0;
-        cobalt_world.resources.player.wall_run_cooldown = tuning::WALL_RUN_COOLDOWN;
+fn clear_wallrun(brimstone_world: &mut BrimstoneWorld) {
+    if brimstone_world.resources.player.wall_run_side != 0 {
+        brimstone_world.resources.player.wall_run_side = 0;
+        brimstone_world.resources.player.wall_run_cooldown = tuning::WALL_RUN_COOLDOWN;
     }
 }
 
@@ -355,12 +355,12 @@ fn wall_along(normal: Vec3, forward: Vec3) -> Vec3 {
 
 /// Strip the wallrun camera roll before the look system reads the rotation, so
 /// yaw/pitch stay clean and the roll is re-applied fresh each frame.
-pub fn pre_look(cobalt_world: &CobaltWorld, world: &mut World) {
-    let tilt = cobalt_world.resources.player.wall_run_tilt;
+pub fn pre_look(brimstone_world: &BrimstoneWorld, world: &mut World) {
+    let tilt = brimstone_world.resources.player.wall_run_tilt;
     if tilt.abs() < 1e-5 {
         return;
     }
-    let Some(camera) = cobalt_world.resources.player.camera_entity else {
+    let Some(camera) = brimstone_world.resources.player.camera_entity else {
         return;
     };
     if let Some(transform) = world.core.get_local_transform_mut(camera) {
@@ -371,19 +371,19 @@ pub fn pre_look(cobalt_world: &CobaltWorld, world: &mut World) {
         .set_local_transform_dirty(camera, LocalTransformDirty);
 }
 
-pub fn apply_camera_feel(cobalt_world: &mut CobaltWorld, world: &mut World) {
+pub fn apply_camera_feel(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    let Some(camera) = cobalt_world.resources.player.camera_entity else {
+    let Some(camera) = brimstone_world.resources.player.camera_entity else {
         return;
     };
-    let Some(player) = cobalt_world.resources.player.player_entity else {
+    let Some(player) = brimstone_world.resources.player.player_entity else {
         return;
     };
 
-    let active = cobalt_world.resources.player.sim_active;
-    let wall_side = cobalt_world.resources.player.wall_run_side;
+    let active = brimstone_world.resources.player.sim_active;
+    let wall_side = brimstone_world.resources.player.wall_run_side;
 
-    let game = &mut cobalt_world.resources.game;
+    let game = &mut brimstone_world.resources.game;
     game.shake = approach(game.shake, 0.0, tuning::SHAKE_DECAY * delta);
     game.cam_kick = approach(game.cam_kick, 0.0, tuning::KICK_DECAY * delta);
     game.fov_pop = approach(game.fov_pop, 0.0, tuning::FOV_POP_DECAY * delta);
@@ -401,12 +401,12 @@ pub fn apply_camera_feel(cobalt_world: &mut CobaltWorld, world: &mut World) {
             _ => 0.0,
         };
         let tilt_lerp = (delta * tuning::WALL_RUN_TILT_LERP).clamp(0.0, 1.0);
-        let current_tilt = cobalt_world.resources.player.wall_run_tilt;
+        let current_tilt = brimstone_world.resources.player.wall_run_tilt;
         let next = current_tilt + (target_tilt - current_tilt) * tilt_lerp;
-        cobalt_world.resources.player.wall_run_tilt = next;
+        brimstone_world.resources.player.wall_run_tilt = next;
         next
     } else {
-        cobalt_world.resources.player.wall_run_tilt
+        brimstone_world.resources.player.wall_run_tilt
     };
     let wall_fov = if active && wall_side != 0 {
         tuning::WALL_RUN_FOV_POP
@@ -462,8 +462,8 @@ pub fn apply_camera_feel(cobalt_world: &mut CobaltWorld, world: &mut World) {
     }
 }
 
-pub fn position(cobalt_world: &CobaltWorld, world: &World) -> Vec3 {
-    cobalt_world
+pub fn position(brimstone_world: &BrimstoneWorld, world: &World) -> Vec3 {
+    brimstone_world
         .resources
         .player
         .player_entity
@@ -472,8 +472,8 @@ pub fn position(cobalt_world: &CobaltWorld, world: &World) -> Vec3 {
         .unwrap_or(PLAYER_SPAWN)
 }
 
-pub fn teleport(cobalt_world: &CobaltWorld, world: &mut World, position: Vec3) {
-    let Some(player) = cobalt_world.resources.player.player_entity else {
+pub fn teleport(brimstone_world: &BrimstoneWorld, world: &mut World, position: Vec3) {
+    let Some(player) = brimstone_world.resources.player.player_entity else {
         return;
     };
     if let Some(transform) = world.core.get_local_transform_mut(player) {
@@ -488,7 +488,7 @@ pub fn teleport(cobalt_world: &CobaltWorld, world: &mut World, position: Vec3) {
     }
     mark_local_transform_dirty(world, player);
 
-    if let Some(camera) = cobalt_world.resources.player.camera_entity {
+    if let Some(camera) = brimstone_world.resources.player.camera_entity {
         if let Some(transform) = world.core.get_local_transform_mut(camera) {
             transform.rotation = nalgebra_glm::quat_identity();
         }
@@ -502,8 +502,8 @@ fn axis(positive: bool, negative: bool) -> f32 {
     (positive as i32 - negative as i32) as f32
 }
 
-fn camera_basis(cobalt_world: &CobaltWorld, world: &World) -> (Vec3, Vec3) {
-    let camera = cobalt_world.resources.player.camera_entity;
+fn camera_basis(brimstone_world: &BrimstoneWorld, world: &World) -> (Vec3, Vec3) {
+    let camera = brimstone_world.resources.player.camera_entity;
     let Some(transform) = camera.and_then(|camera| world.core.get_global_transform(camera)) else {
         return (vec3(0.0, 0.0, -1.0), vec3(1.0, 0.0, 0.0));
     };

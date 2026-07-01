@@ -4,7 +4,7 @@
 //! centre and head-on. It bobs while walking and kicks on each shot. Purely
 //! cosmetic — the crosshair, aim, and hit detection all stay at screen centre.
 
-use crate::ecs::CobaltWorld;
+use crate::ecs::BrimstoneWorld;
 use crate::systems::world::player;
 use nalgebra_glm::{Vec3, lerp, quat_angle_axis, quat_identity, vec3};
 use nightshade::ecs::input::queries::query_active_gamepad;
@@ -149,8 +149,8 @@ fn model(index: usize) -> Vec<Part> {
 }
 
 /// Spawn the camera-parented root and every weapon's cube model (hidden).
-pub fn spawn(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    let Some(camera) = cobalt_world.resources.player.camera_entity else {
+pub fn spawn(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    let Some(camera) = brimstone_world.resources.player.camera_entity else {
         return;
     };
     let root = spawn_entities(
@@ -184,9 +184,9 @@ pub fn spawn(cobalt_world: &mut CobaltWorld, world: &mut World) {
                 .set_visibility(*entity, Visibility { visible: false });
         }
     }
-    cobalt_world.resources.viewmodel.root = root;
-    cobalt_world.resources.viewmodel.models = models;
-    cobalt_world.resources.viewmodel.shown = -1;
+    brimstone_world.resources.viewmodel.root = root;
+    brimstone_world.resources.viewmodel.models = models;
+    brimstone_world.resources.viewmodel.shown = -1;
 }
 
 fn build(world: &mut World, root: Entity, index: usize) -> Vec<Entity> {
@@ -227,13 +227,13 @@ fn material(color: [f32; 3], glow: f32) -> Material {
 /// the camera frame. Effects anchored here (the tesla arc) line up with the
 /// visible model whether it's held at the hip or slid to centre in ADS.
 pub fn muzzle(
-    cobalt_world: &CobaltWorld,
+    brimstone_world: &BrimstoneWorld,
     origin: Vec3,
     forward: Vec3,
     right: Vec3,
     up: Vec3,
 ) -> Vec3 {
-    let aim = cobalt_world.resources.viewmodel.aim.clamp(0.0, 1.0);
+    let aim = brimstone_world.resources.viewmodel.aim.clamp(0.0, 1.0);
     let base = lerp(&HIP_POS, &ADS_POS, aim);
     let barrel = (vec3(0.0, 0.0, -CONVERGE_DIST) - base).normalize();
     let tip = base + barrel * 0.4;
@@ -241,8 +241,8 @@ pub fn muzzle(
 }
 
 /// Show only the active weapon (also used to hide everything off the game screen).
-pub fn set_active(cobalt_world: &CobaltWorld, world: &mut World, active: i32) {
-    for (index, group) in cobalt_world.resources.viewmodel.models.iter().enumerate() {
+pub fn set_active(brimstone_world: &BrimstoneWorld, world: &mut World, active: i32) {
+    for (index, group) in brimstone_world.resources.viewmodel.models.iter().enumerate() {
         let visible = index as i32 == active;
         for entity in group {
             world.core.set_visibility(*entity, Visibility { visible });
@@ -250,13 +250,13 @@ pub fn set_active(cobalt_world: &CobaltWorld, world: &mut World, active: i32) {
     }
 }
 
-pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    if cobalt_world.resources.viewmodel.models.is_empty() {
+pub fn update(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    if brimstone_world.resources.viewmodel.models.is_empty() {
         return;
     }
     let delta = world.resources.window.timing.delta_time.clamp(0.001, 0.1);
-    let weapon_index = cobalt_world.resources.weapon.current.index() as i32;
-    let recoil = cobalt_world.resources.weapon.recoil;
+    let weapon_index = brimstone_world.resources.weapon.current.index() as i32;
+    let recoil = brimstone_world.resources.weapon.recoil;
 
     let mouse_aim = world
         .resources
@@ -269,28 +269,28 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         .unwrap_or(false);
     let aiming = mouse_aim || pad_aim;
 
-    cobalt_world.resources.viewmodel.aim += ((if aiming { 1.0 } else { 0.0 })
-        - cobalt_world.resources.viewmodel.aim)
+    brimstone_world.resources.viewmodel.aim += ((if aiming { 1.0 } else { 0.0 })
+        - brimstone_world.resources.viewmodel.aim)
         * (delta * 14.0).min(1.0);
-    let aim = cobalt_world.resources.viewmodel.aim.clamp(0.0, 1.0);
+    let aim = brimstone_world.resources.viewmodel.aim.clamp(0.0, 1.0);
 
     // Weapon-swap animation: lower the held weapon, swap models at the bottom of
     // the dip, then raise the new one. The first equip snaps in with no dip.
-    if cobalt_world.resources.viewmodel.shown < 0 {
-        set_active(cobalt_world, world, weapon_index);
-        cobalt_world.resources.viewmodel.shown = weapon_index;
-    } else if weapon_index != cobalt_world.resources.viewmodel.shown
-        && cobalt_world.resources.viewmodel.switch <= 0.0
+    if brimstone_world.resources.viewmodel.shown < 0 {
+        set_active(brimstone_world, world, weapon_index);
+        brimstone_world.resources.viewmodel.shown = weapon_index;
+    } else if weapon_index != brimstone_world.resources.viewmodel.shown
+        && brimstone_world.resources.viewmodel.switch <= 0.0
     {
-        cobalt_world.resources.viewmodel.switch = SWITCH_TIME;
+        brimstone_world.resources.viewmodel.switch = SWITCH_TIME;
     }
-    cobalt_world.resources.viewmodel.switch =
-        (cobalt_world.resources.viewmodel.switch - delta).max(0.0);
-    let switch = cobalt_world.resources.viewmodel.switch;
+    brimstone_world.resources.viewmodel.switch =
+        (brimstone_world.resources.viewmodel.switch - delta).max(0.0);
+    let switch = brimstone_world.resources.viewmodel.switch;
     let phase = 1.0 - switch / SWITCH_TIME;
-    if switch > 0.0 && phase >= 0.5 && cobalt_world.resources.viewmodel.shown != weapon_index {
-        set_active(cobalt_world, world, weapon_index);
-        cobalt_world.resources.viewmodel.shown = weapon_index;
+    if switch > 0.0 && phase >= 0.5 && brimstone_world.resources.viewmodel.shown != weapon_index {
+        set_active(brimstone_world, world, weapon_index);
+        brimstone_world.resources.viewmodel.shown = weapon_index;
     }
     let dip = if switch > 0.0 {
         (phase * std::f32::consts::PI).sin()
@@ -298,9 +298,9 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         0.0
     };
 
-    let position = player::position(cobalt_world, world);
-    let root = cobalt_world.resources.viewmodel.root;
-    let viewmodel = &mut cobalt_world.resources.viewmodel;
+    let position = player::position(brimstone_world, world);
+    let root = brimstone_world.resources.viewmodel.root;
+    let viewmodel = &mut brimstone_world.resources.viewmodel;
     let mut moved = position - viewmodel.last_position;
     moved.y = 0.0;
     let speed = (moved.norm() / delta).min(20.0);

@@ -3,7 +3,7 @@
 //! save to and load from a file on disk so they persist between sessions.
 
 use crate::content::{self, BlockKind, LevelData};
-use crate::ecs::{CobaltWorld, EditorHandles, Screen};
+use crate::ecs::{BrimstoneWorld, EditorHandles, Screen};
 use crate::systems::lifecycle;
 use crate::systems::world::level::material_for;
 use crate::systems::world::{game, level, player, textures};
@@ -14,7 +14,7 @@ use nightshade::ecs::physics::commands::spawn_static_physics_cube_with_material;
 use nightshade::ecs::world::commands::{spawn_light_entity, spawn_mesh_at};
 use nightshade::prelude::*;
 
-const SAVE_PATH: &str = "cobalt_custom_level.txt";
+const SAVE_PATH: &str = "brimstone_custom_level.txt";
 const FLY_SPEED: f32 = 16.0;
 const GRID: f32 = 1.0;
 const VANTAGE: Vec3 = Vec3::new(0.0, 9.0, 20.0);
@@ -33,40 +33,40 @@ pub fn brush_size(kind: BlockKind) -> Vec3 {
 
 /// Open the editor: tear down whatever level is showing, load the saved draft,
 /// and stand the camera up at the vantage point.
-pub fn open(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    game::teardown_world(cobalt_world, world);
-    let empty = cobalt_world.resources.editor.data.blocks.is_empty()
-        && cobalt_world.resources.editor.data.spawn_points.is_empty();
+pub fn open(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    game::teardown_world(brimstone_world, world);
+    let empty = brimstone_world.resources.editor.data.blocks.is_empty()
+        && brimstone_world.resources.editor.data.spawn_points.is_empty();
     if empty {
         if let Some(data) = load_from_disk() {
-            cobalt_world.resources.editor.data = data;
+            brimstone_world.resources.editor.data = data;
         }
-        cobalt_world.resources.editor.brush = BlockKind::Platform;
-        cobalt_world.resources.editor.place_height = 0.0;
+        brimstone_world.resources.editor.brush = BlockKind::Platform;
+        brimstone_world.resources.editor.place_height = 0.0;
     }
-    cobalt_world.resources.editor.active = true;
-    rebuild_scene(cobalt_world, world);
-    player::teleport(cobalt_world, world, VANTAGE);
-    lifecycle::enter(cobalt_world, world, Screen::Editor);
-    status(cobalt_world, "EDITOR");
+    brimstone_world.resources.editor.active = true;
+    rebuild_scene(brimstone_world, world);
+    player::teleport(brimstone_world, world, VANTAGE);
+    lifecycle::enter(brimstone_world, world, Screen::Editor);
+    status(brimstone_world, "EDITOR");
 }
 
 /// Despawn every preview entity. Called when leaving the editor or play-testing.
-pub fn teardown(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    for entity in cobalt_world.resources.editor.block_entities.drain(..) {
+pub fn teardown(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    for entity in brimstone_world.resources.editor.block_entities.drain(..) {
         despawn_recursive_immediate(world, entity);
     }
-    for entity in cobalt_world.resources.editor.markers.drain(..) {
+    for entity in brimstone_world.resources.editor.markers.drain(..) {
         despawn_recursive_immediate(world, entity);
     }
-    if let Some(ghost) = cobalt_world.resources.editor.ghost.take() {
+    if let Some(ghost) = brimstone_world.resources.editor.ghost.take() {
         despawn_recursive_immediate(world, ghost);
     }
 }
 
-fn rebuild_scene(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    teardown(cobalt_world, world);
-    let data = cobalt_world.resources.editor.data.clone();
+fn rebuild_scene(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    teardown(brimstone_world, world);
+    let data = brimstone_world.resources.editor.data.clone();
 
     level::apply_environment(
         world,
@@ -78,22 +78,22 @@ fn rebuild_scene(cobalt_world: &mut CobaltWorld, world: &mut World) {
     for block in &data.blocks {
         blocks.push(spawn_block_entity(world, block));
     }
-    cobalt_world.resources.editor.block_entities = blocks;
+    brimstone_world.resources.editor.block_entities = blocks;
 
-    rebuild_markers(cobalt_world, world);
+    rebuild_markers(brimstone_world, world);
 
     let ghost = spawn_mesh_at(world, "Cube", VANTAGE, vec3(1.0, 1.0, 1.0));
     world
         .core
         .set_material_ref(ghost, MaterialRef::new(textures::MAT_GHOST.to_string()));
-    cobalt_world.resources.editor.ghost = Some(ghost);
+    brimstone_world.resources.editor.ghost = Some(ghost);
 }
 
-fn rebuild_markers(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    for entity in cobalt_world.resources.editor.markers.drain(..) {
+fn rebuild_markers(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    for entity in brimstone_world.resources.editor.markers.drain(..) {
         despawn_recursive_immediate(world, entity);
     }
-    let data = cobalt_world.resources.editor.data.clone();
+    let data = brimstone_world.resources.editor.data.clone();
     let mut markers: Vec<Entity> = Vec::new();
 
     let span = 38.0;
@@ -155,22 +155,22 @@ fn rebuild_markers(cobalt_world: &mut CobaltWorld, world: &mut World) {
         textures::MAT_EXIT,
     ));
 
-    cobalt_world.resources.editor.markers = markers;
+    brimstone_world.resources.editor.markers = markers;
 }
 
-pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
+pub fn update(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    cobalt_world.resources.editor.status = (cobalt_world.resources.editor.status - delta).max(0.0);
+    brimstone_world.resources.editor.status = (brimstone_world.resources.editor.status - delta).max(0.0);
 
     first_person_camera_look_system(world);
-    fly(cobalt_world, world, delta);
+    fly(brimstone_world, world, delta);
 
-    let cursor = cursor_on_grid(cobalt_world, world);
-    cobalt_world.resources.editor.cursor = cursor;
-    update_ghost(cobalt_world, world, cursor);
+    let cursor = cursor_on_grid(brimstone_world, world);
+    brimstone_world.resources.editor.cursor = cursor;
+    update_ghost(brimstone_world, world, cursor);
 
-    handle_input(cobalt_world, world, cursor);
-    refresh_status_text(cobalt_world, world);
+    handle_input(brimstone_world, world, cursor);
+    refresh_status_text(brimstone_world, world);
 }
 
 const CONTROLS: &str = "LEVEL EDITOR\nWASD + E/Q fly, mouse look\n1-6 brush   R/F build height\nSPACE place block   X delete\nZ player start   C exit gate\nV jump pad   B enemy spawn   G remove marker\n+/- enemy count   K save   L load\nENTER play-test   ESC title";
@@ -206,8 +206,8 @@ pub fn build_ui(tree: &mut UiTreeBuilder) -> EditorHandles {
     EditorHandles { root, status }
 }
 
-fn refresh_status_text(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    let editor = &cobalt_world.resources.editor;
+fn refresh_status_text(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    let editor = &brimstone_world.resources.editor;
     let text = if editor.status > 0.0 {
         format!(
             "{}   |   BRUSH {}   H {:.0}",
@@ -224,12 +224,12 @@ fn refresh_status_text(cobalt_world: &mut CobaltWorld, world: &mut World) {
             editor.data.spawn_points.len()
         )
     };
-    let status = cobalt_world.resources.ui_handles.editor.status;
+    let status = brimstone_world.resources.ui_handles.editor.status;
     ui_set_text(world, status, &text);
 }
 
-fn fly(cobalt_world: &mut CobaltWorld, world: &mut World, delta: f32) {
-    let Some(camera) = cobalt_world.resources.player.camera_entity else {
+fn fly(brimstone_world: &mut BrimstoneWorld, world: &mut World, delta: f32) {
+    let Some(camera) = brimstone_world.resources.player.camera_entity else {
         return;
     };
     let Some(transform) = world.core.get_global_transform(camera) else {
@@ -261,7 +261,7 @@ fn fly(cobalt_world: &mut CobaltWorld, world: &mut World, delta: f32) {
         return;
     }
     let step = move_dir.normalize() * FLY_SPEED * delta;
-    let Some(player) = cobalt_world.resources.player.player_entity else {
+    let Some(player) = brimstone_world.resources.player.player_entity else {
         return;
     };
     if let Some(local) = world.core.get_local_transform_mut(player) {
@@ -282,9 +282,9 @@ fn fly(cobalt_world: &mut CobaltWorld, world: &mut World, delta: f32) {
     }
 }
 
-fn cursor_on_grid(cobalt_world: &CobaltWorld, world: &World) -> Vec3 {
-    let plane_y = cobalt_world.resources.editor.place_height;
-    let Some(camera) = cobalt_world.resources.player.camera_entity else {
+fn cursor_on_grid(brimstone_world: &BrimstoneWorld, world: &World) -> Vec3 {
+    let plane_y = brimstone_world.resources.editor.place_height;
+    let Some(camera) = brimstone_world.resources.player.camera_entity else {
         return vec3(0.0, plane_y, 0.0);
     };
     let Some(transform) = world.core.get_global_transform(camera) else {
@@ -310,11 +310,11 @@ fn cursor_on_grid(cobalt_world: &CobaltWorld, world: &World) -> Vec3 {
     )
 }
 
-fn update_ghost(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3) {
-    let Some(ghost) = cobalt_world.resources.editor.ghost else {
+fn update_ghost(brimstone_world: &mut BrimstoneWorld, world: &mut World, cursor: Vec3) {
+    let Some(ghost) = brimstone_world.resources.editor.ghost else {
         return;
     };
-    let size = brush_size(cobalt_world.resources.editor.brush);
+    let size = brush_size(brimstone_world.resources.editor.brush);
     let center = cursor + vec3(0.0, size.y * 0.5, 0.0);
     if let Some(local) = world.core.get_local_transform_mut(ghost) {
         local.translation = center;
@@ -323,7 +323,7 @@ fn update_ghost(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3)
     mark_local_transform_dirty(world, ghost);
 }
 
-fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3) {
+fn handle_input(brimstone_world: &mut BrimstoneWorld, world: &mut World, cursor: Vec3) {
     let keyboard = &world.resources.input.keyboard;
     let place = keyboard.just_pressed(KeyCode::Space);
     let brush_keys = [
@@ -352,96 +352,96 @@ fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3)
     let play_test = keyboard.just_pressed(KeyCode::Enter);
 
     if let Some(index) = brush_index {
-        cobalt_world.resources.editor.brush = BlockKind::ALL[index];
-        status(cobalt_world, BlockKind::ALL[index].label());
+        brimstone_world.resources.editor.brush = BlockKind::ALL[index];
+        status(brimstone_world, BlockKind::ALL[index].label());
     }
     if raise {
-        cobalt_world.resources.editor.place_height =
-            (cobalt_world.resources.editor.place_height + GRID).min(16.0);
-        status(cobalt_world, "RAISE");
+        brimstone_world.resources.editor.place_height =
+            (brimstone_world.resources.editor.place_height + GRID).min(16.0);
+        status(brimstone_world, "RAISE");
     }
     if lower {
-        cobalt_world.resources.editor.place_height =
-            (cobalt_world.resources.editor.place_height - GRID).max(0.0);
-        status(cobalt_world, "LOWER");
+        brimstone_world.resources.editor.place_height =
+            (brimstone_world.resources.editor.place_height - GRID).max(0.0);
+        status(brimstone_world, "LOWER");
     }
     if place {
-        place_block(cobalt_world, world, cursor);
+        place_block(brimstone_world, world, cursor);
     }
     if delete {
-        delete_block(cobalt_world, world, cursor);
+        delete_block(brimstone_world, world, cursor);
     }
     if set_spawn {
-        cobalt_world.resources.editor.data.spawn = [cursor.x, 1.2 + cursor.y, cursor.z];
-        rebuild_markers(cobalt_world, world);
-        status(cobalt_world, "PLAYER START");
+        brimstone_world.resources.editor.data.spawn = [cursor.x, 1.2 + cursor.y, cursor.z];
+        rebuild_markers(brimstone_world, world);
+        status(brimstone_world, "PLAYER START");
     }
     if set_exit {
-        cobalt_world.resources.editor.data.exit = [cursor.x, cursor.z];
-        rebuild_markers(cobalt_world, world);
-        status(cobalt_world, "EXIT");
+        brimstone_world.resources.editor.data.exit = [cursor.x, cursor.z];
+        rebuild_markers(brimstone_world, world);
+        status(brimstone_world, "EXIT");
     }
     if add_pad {
-        cobalt_world
+        brimstone_world
             .resources
             .editor
             .data
             .pads
             .push((cursor.x, cursor.z));
-        rebuild_markers(cobalt_world, world);
-        status(cobalt_world, "PAD");
+        rebuild_markers(brimstone_world, world);
+        status(brimstone_world, "PAD");
     }
     if add_enemy {
-        cobalt_world
+        brimstone_world
             .resources
             .editor
             .data
             .spawn_points
             .push((cursor.x, cursor.z));
-        rebuild_markers(cobalt_world, world);
-        status(cobalt_world, "ENEMY SPAWN");
+        rebuild_markers(brimstone_world, world);
+        status(brimstone_world, "ENEMY SPAWN");
     }
     if remove_marker {
-        remove_nearest_marker(cobalt_world, world, cursor);
+        remove_nearest_marker(brimstone_world, world, cursor);
     }
     if more {
-        let roster = &mut cobalt_world.resources.editor.data.roster;
+        let roster = &mut brimstone_world.resources.editor.data.roster;
         roster.imps += 1;
         roster.swarmers += 1;
-        status(cobalt_world, "MORE ENEMIES");
+        status(brimstone_world, "MORE ENEMIES");
     }
     if fewer {
-        let roster = &mut cobalt_world.resources.editor.data.roster;
+        let roster = &mut brimstone_world.resources.editor.data.roster;
         roster.imps = roster.imps.saturating_sub(1);
         roster.swarmers = roster.swarmers.saturating_sub(1);
-        status(cobalt_world, "FEWER ENEMIES");
+        status(brimstone_world, "FEWER ENEMIES");
     }
     if save {
-        save_to_disk(&cobalt_world.resources.editor.data);
-        status(cobalt_world, "SAVED");
+        save_to_disk(&brimstone_world.resources.editor.data);
+        status(brimstone_world, "SAVED");
     }
     if load && let Some(data) = load_from_disk() {
-        cobalt_world.resources.editor.data = data;
-        rebuild_scene(cobalt_world, world);
-        status(cobalt_world, "LOADED");
+        brimstone_world.resources.editor.data = data;
+        rebuild_scene(brimstone_world, world);
+        status(brimstone_world, "LOADED");
     }
     if play_test {
-        play(cobalt_world, world);
+        play(brimstone_world, world);
     }
 }
 
-fn place_block(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3) {
-    let kind = cobalt_world.resources.editor.brush;
+fn place_block(brimstone_world: &mut BrimstoneWorld, world: &mut World, cursor: Vec3) {
+    let kind = brimstone_world.resources.editor.brush;
     let size = brush_size(kind);
     let center = cursor + vec3(0.0, size.y * 0.5, 0.0);
     let spec = (center.x, center.y, center.z, size.x, size.y, size.z, kind);
     let entity = spawn_block_entity(world, &spec);
-    cobalt_world.resources.editor.data.blocks.push(spec);
-    cobalt_world.resources.editor.block_entities.push(entity);
+    brimstone_world.resources.editor.data.blocks.push(spec);
+    brimstone_world.resources.editor.block_entities.push(entity);
 }
 
-fn delete_block(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3) {
-    let blocks = &cobalt_world.resources.editor.data.blocks;
+fn delete_block(brimstone_world: &mut BrimstoneWorld, world: &mut World, cursor: Vec3) {
+    let blocks = &brimstone_world.resources.editor.data.blocks;
     let mut best: Option<(usize, f32)> = None;
     for (index, block) in blocks.iter().enumerate() {
         let center = vec3(block.0, block.1, block.2);
@@ -451,32 +451,32 @@ fn delete_block(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3)
         }
     }
     if let Some((index, _)) = best {
-        cobalt_world.resources.editor.data.blocks.remove(index);
-        let entity = cobalt_world.resources.editor.block_entities.remove(index);
+        brimstone_world.resources.editor.data.blocks.remove(index);
+        let entity = brimstone_world.resources.editor.block_entities.remove(index);
         despawn_recursive_immediate(world, entity);
-        status(cobalt_world, "DELETED");
+        status(brimstone_world, "DELETED");
     }
 }
 
-fn remove_nearest_marker(cobalt_world: &mut CobaltWorld, world: &mut World, cursor: Vec3) {
+fn remove_nearest_marker(brimstone_world: &mut BrimstoneWorld, world: &mut World, cursor: Vec3) {
     let mut removed = false;
     {
-        let pads = &mut cobalt_world.resources.editor.data.pads;
+        let pads = &mut brimstone_world.resources.editor.data.pads;
         if let Some(index) = nearest(pads, cursor) {
             pads.remove(index);
             removed = true;
         }
     }
     if !removed {
-        let spawns = &mut cobalt_world.resources.editor.data.spawn_points;
+        let spawns = &mut brimstone_world.resources.editor.data.spawn_points;
         if let Some(index) = nearest(spawns, cursor) {
             spawns.remove(index);
             removed = true;
         }
     }
     if removed {
-        rebuild_markers(cobalt_world, world);
-        status(cobalt_world, "REMOVED MARKER");
+        rebuild_markers(brimstone_world, world);
+        status(brimstone_world, "REMOVED MARKER");
     }
 }
 
@@ -491,17 +491,17 @@ fn nearest(points: &[(f32, f32)], cursor: Vec3) -> Option<usize> {
     best.map(|(index, _)| index)
 }
 
-fn play(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    if cobalt_world.resources.editor.data.blocks.is_empty()
-        && cobalt_world.resources.editor.data.spawn_points.is_empty()
+fn play(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    if brimstone_world.resources.editor.data.blocks.is_empty()
+        && brimstone_world.resources.editor.data.spawn_points.is_empty()
     {
-        status(cobalt_world, "PLACE SOMETHING FIRST");
+        status(brimstone_world, "PLACE SOMETHING FIRST");
         return;
     }
-    teardown(cobalt_world, world);
-    cobalt_world.resources.editor.active = false;
-    game::start_custom(cobalt_world, world);
-    lifecycle::enter(cobalt_world, world, Screen::InGame);
+    teardown(brimstone_world, world);
+    brimstone_world.resources.editor.active = false;
+    game::start_custom(brimstone_world, world);
+    lifecycle::enter(brimstone_world, world, Screen::InGame);
 }
 
 fn spawn_block_entity(world: &mut World, spec: &content::BlockSpec) -> Entity {
@@ -555,9 +555,9 @@ fn spawn_lamp(world: &mut World, position: Vec3, color: Vec3) -> Entity {
     entity
 }
 
-fn status(cobalt_world: &mut CobaltWorld, text: &str) {
-    cobalt_world.resources.editor.status = 2.0;
-    cobalt_world.resources.editor.status_text = text.to_string();
+fn status(brimstone_world: &mut BrimstoneWorld, text: &str) {
+    brimstone_world.resources.editor.status = 2.0;
+    brimstone_world.resources.editor.status_text = text.to_string();
 }
 
 fn save_to_disk(data: &LevelData) {

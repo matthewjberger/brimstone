@@ -1,4 +1,4 @@
-use crate::ecs::{CobaltWorld, Screen, TitleHandles};
+use crate::ecs::{BrimstoneWorld, Screen, TitleHandles};
 use crate::systems::lifecycle;
 use crate::systems::screens::menu_button;
 use crate::theme::*;
@@ -95,16 +95,16 @@ pub fn build(tree: &mut UiTreeBuilder) -> TitleHandles {
     }
 }
 
-pub fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    if !matches!(cobalt_world.resources.screen.current, Screen::Title) {
+pub fn handle_input(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    if !matches!(brimstone_world.resources.screen.current, Screen::Title) {
         return;
     }
-    let story = cobalt_world.resources.ui_handles.title.story_button;
-    let play = cobalt_world.resources.ui_handles.title.play_button;
-    let adventure = cobalt_world.resources.ui_handles.title.adventure_button;
-    let level_select = cobalt_world.resources.ui_handles.title.level_select_button;
-    let editor = cobalt_world.resources.ui_handles.title.editor_button;
-    let quit = cobalt_world.resources.ui_handles.title.quit_button;
+    let story = brimstone_world.resources.ui_handles.title.story_button;
+    let play = brimstone_world.resources.ui_handles.title.play_button;
+    let adventure = brimstone_world.resources.ui_handles.title.adventure_button;
+    let level_select = brimstone_world.resources.ui_handles.title.level_select_button;
+    let editor = brimstone_world.resources.ui_handles.title.editor_button;
+    let quit = brimstone_world.resources.ui_handles.title.quit_button;
     let mut clicked_story = false;
     let mut clicked_play = false;
     let mut clicked_adventure = false;
@@ -127,15 +127,15 @@ pub fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World) {
         }
     }
     if clicked_story {
-        crate::systems::story::open_select(cobalt_world, world);
+        crate::systems::story::open_select(brimstone_world, world);
     } else if clicked_play {
-        lifecycle::enter(cobalt_world, world, Screen::InGame);
+        lifecycle::enter(brimstone_world, world, Screen::InGame);
     } else if clicked_adventure {
-        crate::adventure::open(cobalt_world, world);
+        crate::adventure::open(brimstone_world, world);
     } else if clicked_level_select {
-        lifecycle::enter(cobalt_world, world, Screen::LevelSelect);
+        lifecycle::enter(brimstone_world, world, Screen::LevelSelect);
     } else if clicked_editor {
-        crate::systems::editor::open(cobalt_world, world);
+        crate::systems::editor::open(brimstone_world, world);
     } else if clicked_quit {
         world.resources.window.should_exit = true;
     }

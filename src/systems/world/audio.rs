@@ -1,4 +1,4 @@
-use crate::ecs::CobaltWorld;
+use crate::ecs::BrimstoneWorld;
 use crate::systems::common::next_random;
 use nightshade::ecs::audio::components::AudioSource;
 use nightshade::ecs::audio::resources::audio_engine_load_sound;
@@ -204,12 +204,12 @@ pub fn load(world: &mut World) {
     }
 }
 
-pub fn play(cobalt_world: &mut CobaltWorld, world: &mut World, set: &[&'static str], volume: f32) {
+pub fn play(brimstone_world: &mut BrimstoneWorld, world: &mut World, set: &[&'static str], volume: f32) {
     if set.is_empty() {
         return;
     }
     let index = {
-        let counter = cobalt_world
+        let counter = brimstone_world
             .resources
             .audio
             .round_robin
@@ -220,7 +220,7 @@ pub fn play(cobalt_world: &mut CobaltWorld, world: &mut World, set: &[&'static s
         current
     };
     let key = set[index % set.len()];
-    let pitch = 0.94 + next_random(&mut cobalt_world.resources.game.random_state) * 0.12;
+    let pitch = 0.94 + next_random(&mut brimstone_world.resources.game.random_state) * 0.12;
     let entity = spawn_entities(
         world,
         NAME | LOCAL_TRANSFORM | GLOBAL_TRANSFORM | AUDIO_SOURCE,
@@ -233,20 +233,20 @@ pub fn play(cobalt_world: &mut CobaltWorld, world: &mut World, set: &[&'static s
             .with_playback_rate(pitch as f64)
             .playing(),
     );
-    cobalt_world
+    brimstone_world
         .resources
         .audio
         .sources
         .push((entity, SOUND_TTL));
 }
 
-pub fn tick(cobalt_world: &mut CobaltWorld, world: &mut World) {
+pub fn tick(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
     let mut index = 0;
-    while index < cobalt_world.resources.audio.sources.len() {
-        cobalt_world.resources.audio.sources[index].1 -= delta;
-        if cobalt_world.resources.audio.sources[index].1 <= 0.0 {
-            let (entity, _) = cobalt_world.resources.audio.sources.swap_remove(index);
+    while index < brimstone_world.resources.audio.sources.len() {
+        brimstone_world.resources.audio.sources[index].1 -= delta;
+        if brimstone_world.resources.audio.sources[index].1 <= 0.0 {
+            let (entity, _) = brimstone_world.resources.audio.sources.swap_remove(index);
             queue_ecs_command(world, EcsCommand::DespawnRecursive { entity });
         } else {
             index += 1;

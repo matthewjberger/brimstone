@@ -7,7 +7,7 @@ pub use resources::*;
 use nightshade::prelude::freecs;
 
 freecs::ecs! {
-    CobaltWorld {
+    BrimstoneWorld {
         engine_entity: EngineEntity => ENGINE_ENTITY,
         enemy: Enemy => ENEMY,
         pickup: Pickup => PICKUP,

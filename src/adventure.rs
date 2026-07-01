@@ -12,7 +12,7 @@
 use crate::content::BlockKind::{Core, Cover, Monument, Pillar, Wall};
 use crate::content::BlockSpec;
 use crate::ecs::{
-    AdvPanel, AdventureHandles, AdventureNpc, AdventurePortal, CobaltWorld, EnemyKind,
+    AdvPanel, AdventureHandles, AdventureNpc, AdventurePortal, BrimstoneWorld, EnemyKind,
     Interactable, Phase, QuestProgress, QuestState, Screen,
 };
 use crate::systems::common::{next_random, random_range};
@@ -298,55 +298,55 @@ const AREAS: &[AreaDef] = &[
 // ============================================================================
 
 /// Begin a fresh adventure run from the title screen.
-pub fn open(cobalt_world: &mut CobaltWorld, world: &mut World) {
+pub fn open(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let uptime = world.resources.window.timing.uptime_milliseconds;
-    let adventure = &mut cobalt_world.resources.adventure;
+    let adventure = &mut brimstone_world.resources.adventure;
     *adventure = Default::default();
     adventure.active = true;
     adventure.rng = 0x2545_f491_4f6c_dd1d ^ (uptime | 1);
     adventure.gold = 30;
     adventure.items.push((ITEM_POTION, 2));
 
-    cobalt_world.resources.stats = Default::default();
-    cobalt_world.resources.weapon = Default::default();
-    cobalt_world.resources.game.phase = Phase::Playing;
+    brimstone_world.resources.stats = Default::default();
+    brimstone_world.resources.weapon = Default::default();
+    brimstone_world.resources.game.phase = Phase::Playing;
 
     // Clear the arcade level so its geometry doesn't coexist with the overworld.
-    game::teardown_world(cobalt_world, world);
-    load_area(cobalt_world, world, AREA_TOWN);
-    cobalt_world.resources.adventure.intro_done = true;
-    cobalt_world
+    game::teardown_world(brimstone_world, world);
+    load_area(brimstone_world, world, AREA_TOWN);
+    brimstone_world.resources.adventure.intro_done = true;
+    brimstone_world
         .resources
         .adventure
         .notify("Rivermoor endures, but the Mistfen festers. Seek Elder Maru.");
-    lifecycle::enter(cobalt_world, world, Screen::Adventure);
+    lifecycle::enter(brimstone_world, world, Screen::Adventure);
 }
 
 /// Leave adventure mode back to the title screen, restoring the arcade world so
 /// the other modes are ready again.
-pub fn leave(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    teardown(cobalt_world, world);
-    cobalt_world.resources.adventure.active = false;
-    game::start_at(cobalt_world, world, 0);
-    lifecycle::enter(cobalt_world, world, Screen::Title);
+pub fn leave(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    teardown(brimstone_world, world);
+    brimstone_world.resources.adventure.active = false;
+    game::start_at(brimstone_world, world, 0);
+    lifecycle::enter(brimstone_world, world, Screen::Title);
 }
 
-fn teardown(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    enemies::despawn_all(cobalt_world, world);
-    pickups::despawn_all(cobalt_world, world);
-    projectiles::despawn_all(cobalt_world, world);
-    let npcs = std::mem::take(&mut cobalt_world.resources.adventure.npcs);
+fn teardown(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    enemies::despawn_all(brimstone_world, world);
+    pickups::despawn_all(brimstone_world, world);
+    projectiles::despawn_all(brimstone_world, world);
+    let npcs = std::mem::take(&mut brimstone_world.resources.adventure.npcs);
     for npc in npcs {
         despawn_recursive_immediate(world, npc.entity);
     }
-    let geometry = std::mem::take(&mut cobalt_world.resources.adventure.geometry);
+    let geometry = std::mem::take(&mut brimstone_world.resources.adventure.geometry);
     for entity in geometry {
         despawn_recursive_immediate(world, entity);
     }
 }
 
-fn load_area(cobalt_world: &mut CobaltWorld, world: &mut World, area_index: usize) {
-    teardown(cobalt_world, world);
+fn load_area(brimstone_world: &mut BrimstoneWorld, world: &mut World, area_index: usize) {
+    teardown(brimstone_world, world);
     let area = &AREAS[area_index];
 
     level::apply_environment(world, area.atmosphere, area.fog);
@@ -401,9 +401,9 @@ fn load_area(cobalt_world: &mut CobaltWorld, world: &mut World, area_index: usiz
     }
 
     let spawn = vec3(area.spawn[0], area.spawn[1], area.spawn[2]);
-    player::teleport(cobalt_world, world, spawn);
+    player::teleport(brimstone_world, world, spawn);
 
-    let adventure = &mut cobalt_world.resources.adventure;
+    let adventure = &mut brimstone_world.resources.adventure;
     adventure.area = area_index;
     adventure.npcs = npcs;
     adventure.portals = portals;
@@ -413,20 +413,20 @@ fn load_area(cobalt_world: &mut CobaltWorld, world: &mut World, area_index: usiz
     adventure.enemy_timer = 1.5;
     adventure.interactable = Interactable::None;
     adventure.panel = AdvPanel::None;
-    adventure.last_kills = cobalt_world.resources.game.kills;
+    adventure.last_kills = brimstone_world.resources.game.kills;
     adventure.boss_active = false;
 
     if !area.enemies.is_empty() {
         for _ in 0..area.enemy_cap.min(4) {
-            spawn_wild_enemy(cobalt_world, world);
+            spawn_wild_enemy(brimstone_world, world);
         }
     }
-    maybe_spawn_boss(cobalt_world, world, area_index);
+    maybe_spawn_boss(brimstone_world, world, area_index);
 }
 
 /// Spawn the area's warlord set-piece if a boss objective for it is active.
-fn maybe_spawn_boss(cobalt_world: &mut CobaltWorld, world: &mut World, area_index: usize) {
-    let wants_boss = cobalt_world
+fn maybe_spawn_boss(brimstone_world: &mut BrimstoneWorld, world: &mut World, area_index: usize) {
+    let wants_boss = brimstone_world
         .resources
         .adventure
         .quests
@@ -442,15 +442,15 @@ fn maybe_spawn_boss(cobalt_world: &mut CobaltWorld, world: &mut World, area_inde
         return;
     }
     enemies::spawn(
-        cobalt_world,
+        brimstone_world,
         world,
         EnemyKind::Brute,
         true,
         true,
         vec3(0.0, 0.0, -10.0),
     );
-    cobalt_world.resources.adventure.boss_active = true;
-    cobalt_world
+    brimstone_world.resources.adventure.boss_active = true;
+    brimstone_world
         .resources
         .adventure
         .notify("The Warlord of Ember Hollow stirs...");
@@ -460,55 +460,55 @@ fn maybe_spawn_boss(cobalt_world: &mut CobaltWorld, world: &mut World, area_inde
 // Per-frame update
 // ============================================================================
 
-pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    if !matches!(cobalt_world.resources.screen.current, Screen::Adventure) {
+pub fn update(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    if !matches!(brimstone_world.resources.screen.current, Screen::Adventure) {
         return;
     }
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    tick_timers(cobalt_world, delta);
+    tick_timers(brimstone_world, delta);
 
-    if cobalt_world.resources.adventure.panel != AdvPanel::None {
-        handle_panel_input(cobalt_world, world);
-        fx::tick(cobalt_world, world);
-        update_ui(cobalt_world, world);
+    if brimstone_world.resources.adventure.panel != AdvPanel::None {
+        handle_panel_input(brimstone_world, world);
+        fx::tick(brimstone_world, world);
+        update_ui(brimstone_world, world);
         return;
     }
 
-    cobalt_world.resources.player.sim_active = true;
-    player::pre_look(cobalt_world, world);
+    brimstone_world.resources.player.sim_active = true;
+    player::pre_look(brimstone_world, world);
     first_person_camera_look_system(world);
-    player::movement(cobalt_world, world);
-    weapon::update(cobalt_world, world);
-    enemies::update(cobalt_world, world);
-    projectiles::update(cobalt_world, world);
-    pickups::update(cobalt_world, world);
-    player::apply_camera_feel(cobalt_world, world);
-    billboard::update(cobalt_world, world);
-    fx::tick(cobalt_world, world);
+    player::movement(brimstone_world, world);
+    weapon::update(brimstone_world, world);
+    enemies::update(brimstone_world, world);
+    projectiles::update(brimstone_world, world);
+    pickups::update(brimstone_world, world);
+    player::apply_camera_feel(brimstone_world, world);
+    billboard::update(brimstone_world, world);
+    fx::tick(brimstone_world, world);
     update_vfx_system(world);
-    crate::systems::world::viewmodel::update(cobalt_world, world);
+    crate::systems::world::viewmodel::update(brimstone_world, world);
 
-    update_npcs(cobalt_world, world, delta);
-    maintain_enemies(cobalt_world, world, delta);
-    credit_kills(cobalt_world);
-    check_boss(cobalt_world);
-    detect_interactable(cobalt_world, world);
-    handle_interact_key(cobalt_world, world);
-    handle_panel_keys(cobalt_world, world);
-    revive_if_dead(cobalt_world, world);
+    update_npcs(brimstone_world, world, delta);
+    maintain_enemies(brimstone_world, world, delta);
+    credit_kills(brimstone_world);
+    check_boss(brimstone_world);
+    detect_interactable(brimstone_world, world);
+    handle_interact_key(brimstone_world, world);
+    handle_panel_keys(brimstone_world, world);
+    revive_if_dead(brimstone_world, world);
 
-    update_ui(cobalt_world, world);
+    update_ui(brimstone_world, world);
 }
 
-fn tick_timers(cobalt_world: &mut CobaltWorld, delta: f32) {
-    let adventure = &mut cobalt_world.resources.adventure;
+fn tick_timers(brimstone_world: &mut BrimstoneWorld, delta: f32) {
+    let adventure = &mut brimstone_world.resources.adventure;
     adventure.banner = (adventure.banner - delta).max(0.0);
     adventure.notice_timer = (adventure.notice_timer - delta).max(0.0);
 }
 
-fn update_npcs(cobalt_world: &mut CobaltWorld, world: &mut World, delta: f32) {
-    let camera = billboard::camera_position(cobalt_world, world);
-    let adventure = &mut cobalt_world.resources.adventure;
+fn update_npcs(brimstone_world: &mut BrimstoneWorld, world: &mut World, delta: f32) {
+    let camera = billboard::camera_position(brimstone_world, world);
+    let adventure = &mut brimstone_world.resources.adventure;
     let rng = &mut adventure.rng;
     for npc in adventure.npcs.iter_mut() {
         let mut to_target = npc.target - npc.position;
@@ -528,27 +528,27 @@ fn update_npcs(cobalt_world: &mut CobaltWorld, world: &mut World, delta: f32) {
     }
 }
 
-fn maintain_enemies(cobalt_world: &mut CobaltWorld, world: &mut World, delta: f32) {
-    let area = &AREAS[cobalt_world.resources.adventure.area];
+fn maintain_enemies(brimstone_world: &mut BrimstoneWorld, world: &mut World, delta: f32) {
+    let area = &AREAS[brimstone_world.resources.adventure.area];
     if area.enemies.is_empty() {
         return;
     }
-    cobalt_world.resources.adventure.enemy_timer -= delta;
-    if cobalt_world.resources.adventure.enemy_timer > 0.0 {
+    brimstone_world.resources.adventure.enemy_timer -= delta;
+    if brimstone_world.resources.adventure.enemy_timer > 0.0 {
         return;
     }
-    cobalt_world.resources.adventure.enemy_timer = ENEMY_RESPAWN;
-    if enemies::total_count(cobalt_world) < area.enemy_cap {
-        spawn_wild_enemy(cobalt_world, world);
+    brimstone_world.resources.adventure.enemy_timer = ENEMY_RESPAWN;
+    if enemies::total_count(brimstone_world) < area.enemy_cap {
+        spawn_wild_enemy(brimstone_world, world);
     }
 }
 
-fn spawn_wild_enemy(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    let area = &AREAS[cobalt_world.resources.adventure.area];
+fn spawn_wild_enemy(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    let area = &AREAS[brimstone_world.resources.adventure.area];
     if area.enemies.is_empty() {
         return;
     }
-    let rng = &mut cobalt_world.resources.adventure.rng;
+    let rng = &mut brimstone_world.resources.adventure.rng;
     let pick =
         (random_range(rng, 0.0, area.enemies.len() as f32) as usize).min(area.enemies.len() - 1);
     let kind = area.enemies[pick];
@@ -557,13 +557,13 @@ fn spawn_wild_enemy(cobalt_world: &mut CobaltWorld, world: &mut World) {
     let x = random_range(rng, -bound_x, bound_x);
     let z = random_range(rng, -bound_z, bound_z);
     let elite = area.elite && next_random(rng) < 0.3;
-    enemies::spawn(cobalt_world, world, kind, elite, false, vec3(x, 0.0, z));
+    enemies::spawn(brimstone_world, world, kind, elite, false, vec3(x, 0.0, z));
 }
 
 /// Credit kill-quest progress from the global kill counter delta.
-fn credit_kills(cobalt_world: &mut CobaltWorld) {
-    let kills = cobalt_world.resources.game.kills;
-    let adventure = &mut cobalt_world.resources.adventure;
+fn credit_kills(brimstone_world: &mut BrimstoneWorld) {
+    let kills = brimstone_world.resources.game.kills;
+    let adventure = &mut brimstone_world.resources.adventure;
     let delta = kills.saturating_sub(adventure.last_kills);
     adventure.last_kills = kills;
     if delta == 0 {
@@ -597,16 +597,16 @@ fn credit_kills(cobalt_world: &mut CobaltWorld) {
 }
 
 /// Mark a boss objective ready once its warlord has fallen.
-fn check_boss(cobalt_world: &mut CobaltWorld) {
-    if !cobalt_world.resources.adventure.boss_active
-        || cobalt_world.resources.game.boss_entity.is_some()
+fn check_boss(brimstone_world: &mut BrimstoneWorld) {
+    if !brimstone_world.resources.adventure.boss_active
+        || brimstone_world.resources.game.boss_entity.is_some()
     {
         return;
     }
-    let area = cobalt_world.resources.adventure.area;
-    cobalt_world.resources.adventure.boss_active = false;
+    let area = brimstone_world.resources.adventure.area;
+    brimstone_world.resources.adventure.boss_active = false;
     let mut completed: Option<usize> = None;
-    for progress in cobalt_world.resources.adventure.quests.iter_mut() {
+    for progress in brimstone_world.resources.adventure.quests.iter_mut() {
         if progress.state == QuestState::Active
             && matches!(
                 QUESTS[progress.quest].objective,
@@ -618,16 +618,16 @@ fn check_boss(cobalt_world: &mut CobaltWorld) {
         }
     }
     if let Some(quest) = completed {
-        cobalt_world.resources.adventure.notify(format!(
+        brimstone_world.resources.adventure.notify(format!(
             "Warlord slain! '{}' complete.",
             QUESTS[quest].title
         ));
     }
 }
 
-fn detect_interactable(cobalt_world: &mut CobaltWorld, world: &World) {
-    let player_position = player::position(cobalt_world, world);
-    let adventure = &mut cobalt_world.resources.adventure;
+fn detect_interactable(brimstone_world: &mut BrimstoneWorld, world: &World) {
+    let player_position = player::position(brimstone_world, world);
+    let adventure = &mut brimstone_world.resources.adventure;
     let mut best: (f32, Interactable) = (INTERACT_RANGE, Interactable::None);
     for (index, npc) in adventure.npcs.iter().enumerate() {
         let distance = ground_distance(player_position, npc.position);
@@ -650,50 +650,50 @@ fn ground_distance(a: Vec3, b: Vec3) -> f32 {
     offset.norm()
 }
 
-fn handle_interact_key(cobalt_world: &mut CobaltWorld, world: &mut World) {
+fn handle_interact_key(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     if !world.resources.input.keyboard.just_pressed(KeyCode::KeyE) {
         return;
     }
-    match cobalt_world.resources.adventure.interactable {
+    match brimstone_world.resources.adventure.interactable {
         Interactable::Npc(index) => {
-            if let Some(npc) = cobalt_world.resources.adventure.npcs.get(index) {
+            if let Some(npc) = brimstone_world.resources.adventure.npcs.get(index) {
                 let kind = npc.kind;
-                cobalt_world.resources.adventure.dialogue_npc = kind;
-                cobalt_world.resources.adventure.panel = AdvPanel::Dialogue;
-                audio::play(cobalt_world, world, audio::PICKUP, 0.4);
+                brimstone_world.resources.adventure.dialogue_npc = kind;
+                brimstone_world.resources.adventure.panel = AdvPanel::Dialogue;
+                audio::play(brimstone_world, world, audio::PICKUP, 0.4);
             }
         }
         Interactable::Portal(index) => {
-            if let Some(portal) = cobalt_world.resources.adventure.portals.get(index) {
+            if let Some(portal) = brimstone_world.resources.adventure.portals.get(index) {
                 let target = portal.target_area;
-                audio::play(cobalt_world, world, audio::CLEAR, 0.5);
-                load_area(cobalt_world, world, target);
+                audio::play(brimstone_world, world, audio::CLEAR, 0.5);
+                load_area(brimstone_world, world, target);
             }
         }
         Interactable::None => {}
     }
 }
 
-fn handle_panel_keys(cobalt_world: &mut CobaltWorld, world: &World) {
+fn handle_panel_keys(brimstone_world: &mut BrimstoneWorld, world: &World) {
     let keyboard = &world.resources.input.keyboard;
     if keyboard.just_pressed(KeyCode::KeyI) {
-        cobalt_world.resources.adventure.panel = AdvPanel::Inventory;
+        brimstone_world.resources.adventure.panel = AdvPanel::Inventory;
     } else if keyboard.just_pressed(KeyCode::KeyJ) {
-        cobalt_world.resources.adventure.panel = AdvPanel::Quests;
+        brimstone_world.resources.adventure.panel = AdvPanel::Quests;
     }
 }
 
-fn revive_if_dead(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    if cobalt_world.resources.stats.health > 0.0
-        && matches!(cobalt_world.resources.game.phase, Phase::Playing)
+fn revive_if_dead(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    if brimstone_world.resources.stats.health > 0.0
+        && matches!(brimstone_world.resources.game.phase, Phase::Playing)
     {
         return;
     }
-    cobalt_world.resources.stats.health = cobalt_world.resources.stats.max_health;
-    cobalt_world.resources.game.phase = Phase::Playing;
-    let spawn = cobalt_world.resources.adventure.spawn_point;
-    player::teleport(cobalt_world, world, spawn);
-    cobalt_world
+    brimstone_world.resources.stats.health = brimstone_world.resources.stats.max_health;
+    brimstone_world.resources.game.phase = Phase::Playing;
+    let spawn = brimstone_world.resources.adventure.spawn_point;
+    player::teleport(brimstone_world, world, spawn);
+    brimstone_world
         .resources
         .adventure
         .notify("You were struck down, and wake at the gate.");
@@ -722,37 +722,37 @@ fn number_pressed(world: &World) -> Option<usize> {
     None
 }
 
-fn handle_panel_input(cobalt_world: &mut CobaltWorld, world: &mut World) {
+fn handle_panel_input(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let keyboard = &world.resources.input.keyboard;
     let close = keyboard.just_pressed(KeyCode::Escape);
     let toggle = keyboard.just_pressed(KeyCode::KeyI) || keyboard.just_pressed(KeyCode::KeyJ);
     let number = number_pressed(world);
 
-    match cobalt_world.resources.adventure.panel {
+    match brimstone_world.resources.adventure.panel {
         AdvPanel::Dialogue => {
             if close {
-                cobalt_world.resources.adventure.panel = AdvPanel::None;
+                brimstone_world.resources.adventure.panel = AdvPanel::None;
             } else if number == Some(0) {
-                dialogue_action(cobalt_world, world);
+                dialogue_action(brimstone_world, world);
             }
         }
         AdvPanel::Shop => {
             if close {
-                cobalt_world.resources.adventure.panel = AdvPanel::Dialogue;
+                brimstone_world.resources.adventure.panel = AdvPanel::Dialogue;
             } else if let Some(slot) = number {
-                buy_item(cobalt_world, world, slot);
+                buy_item(brimstone_world, world, slot);
             }
         }
         AdvPanel::Inventory => {
             if close || toggle {
-                cobalt_world.resources.adventure.panel = AdvPanel::None;
+                brimstone_world.resources.adventure.panel = AdvPanel::None;
             } else if number == Some(0) {
-                use_potion(cobalt_world, world);
+                use_potion(brimstone_world, world);
             }
         }
         AdvPanel::Quests => {
             if close || toggle {
-                cobalt_world.resources.adventure.panel = AdvPanel::None;
+                brimstone_world.resources.adventure.panel = AdvPanel::None;
             }
         }
         AdvPanel::None => {}
@@ -760,32 +760,32 @@ fn handle_panel_input(cobalt_world: &mut CobaltWorld, world: &mut World) {
 }
 
 /// The single primary action a dialogue offers (key 1), if any.
-fn dialogue_action(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    let def = &NPCS[cobalt_world.resources.adventure.dialogue_npc];
+fn dialogue_action(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    let def = &NPCS[brimstone_world.resources.adventure.dialogue_npc];
     match def.role {
         NpcRole::Merchant => {
-            cobalt_world.resources.adventure.panel = AdvPanel::Shop;
+            brimstone_world.resources.adventure.panel = AdvPanel::Shop;
         }
         NpcRole::QuestGiver => {
             let Some(quest) = def.quest else { return };
-            match quest_state(cobalt_world, quest) {
+            match quest_state(brimstone_world, quest) {
                 QuestState::Available => {
-                    cobalt_world.resources.adventure.quests.push(QuestProgress {
+                    brimstone_world.resources.adventure.quests.push(QuestProgress {
                         quest,
                         state: QuestState::Active,
                         count: 0,
                     });
                     let title = QUESTS[quest].title;
-                    cobalt_world
+                    brimstone_world
                         .resources
                         .adventure
                         .notify(format!("Quest accepted: {title}"));
-                    cobalt_world.resources.adventure.panel = AdvPanel::None;
-                    audio::play(cobalt_world, world, audio::CLEAR, 0.5);
+                    brimstone_world.resources.adventure.panel = AdvPanel::None;
+                    audio::play(brimstone_world, world, audio::CLEAR, 0.5);
                 }
                 QuestState::ReadyToTurnIn => {
-                    turn_in_quest(cobalt_world, world, quest);
-                    cobalt_world.resources.adventure.panel = AdvPanel::None;
+                    turn_in_quest(brimstone_world, world, quest);
+                    brimstone_world.resources.adventure.panel = AdvPanel::None;
                 }
                 _ => {}
             }
@@ -794,69 +794,69 @@ fn dialogue_action(cobalt_world: &mut CobaltWorld, world: &mut World) {
     }
 }
 
-fn turn_in_quest(cobalt_world: &mut CobaltWorld, world: &mut World, quest: usize) {
-    if let Some(progress) = cobalt_world.resources.adventure.quest_mut(quest) {
+fn turn_in_quest(brimstone_world: &mut BrimstoneWorld, world: &mut World, quest: usize) {
+    if let Some(progress) = brimstone_world.resources.adventure.quest_mut(quest) {
         progress.state = QuestState::Done;
     }
     let reward = &QUESTS[quest];
-    cobalt_world.resources.adventure.gold += reward.reward_gold;
+    brimstone_world.resources.adventure.gold += reward.reward_gold;
     if let Some(item) = reward.reward_item {
-        cobalt_world.resources.adventure.add_item(item, 1);
+        brimstone_world.resources.adventure.add_item(item, 1);
     }
     let title = reward.title;
     let gold = reward.reward_gold;
-    cobalt_world
+    brimstone_world
         .resources
         .adventure
         .notify(format!("'{title}' complete! +{gold} gold"));
-    audio::play(cobalt_world, world, audio::CLEAR, 0.8);
+    audio::play(brimstone_world, world, audio::CLEAR, 0.8);
 }
 
-fn buy_item(cobalt_world: &mut CobaltWorld, world: &mut World, slot: usize) {
+fn buy_item(brimstone_world: &mut BrimstoneWorld, world: &mut World, slot: usize) {
     let Some(item) = shop_items().get(slot).copied() else {
         return;
     };
     let price = ITEMS[item].price;
-    if cobalt_world.resources.adventure.gold < price {
-        cobalt_world.resources.adventure.notify("Not enough gold.");
-        audio::play(cobalt_world, world, audio::EMPTY, 0.5);
+    if brimstone_world.resources.adventure.gold < price {
+        brimstone_world.resources.adventure.notify("Not enough gold.");
+        audio::play(brimstone_world, world, audio::EMPTY, 0.5);
         return;
     }
-    cobalt_world.resources.adventure.gold -= price;
-    cobalt_world.resources.adventure.add_item(item, 1);
+    brimstone_world.resources.adventure.gold -= price;
+    brimstone_world.resources.adventure.add_item(item, 1);
     let name = ITEMS[item].name;
-    cobalt_world
+    brimstone_world
         .resources
         .adventure
         .notify(format!("Bought {name}."));
-    audio::play(cobalt_world, world, audio::PICKUP, 0.6);
+    audio::play(brimstone_world, world, audio::PICKUP, 0.6);
 }
 
-fn use_potion(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    if cobalt_world.resources.stats.health >= cobalt_world.resources.stats.max_health {
-        cobalt_world
+fn use_potion(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    if brimstone_world.resources.stats.health >= brimstone_world.resources.stats.max_health {
+        brimstone_world
             .resources
             .adventure
             .notify("Already at full health.");
         return;
     }
-    if !cobalt_world.resources.adventure.remove_item(ITEM_POTION, 1) {
-        cobalt_world.resources.adventure.notify("No draughts left.");
-        audio::play(cobalt_world, world, audio::EMPTY, 0.5);
+    if !brimstone_world.resources.adventure.remove_item(ITEM_POTION, 1) {
+        brimstone_world.resources.adventure.notify("No draughts left.");
+        audio::play(brimstone_world, world, audio::EMPTY, 0.5);
         return;
     }
-    let max = cobalt_world.resources.stats.max_health;
-    cobalt_world.resources.stats.health =
-        (cobalt_world.resources.stats.health + POTION_HEAL).min(max);
-    cobalt_world
+    let max = brimstone_world.resources.stats.max_health;
+    brimstone_world.resources.stats.health =
+        (brimstone_world.resources.stats.health + POTION_HEAL).min(max);
+    brimstone_world
         .resources
         .adventure
         .notify("You drink a Health Draught.");
-    audio::play(cobalt_world, world, audio::PICKUP, 0.7);
+    audio::play(brimstone_world, world, audio::PICKUP, 0.7);
 }
 
-fn quest_state(cobalt_world: &CobaltWorld, quest: usize) -> QuestState {
-    cobalt_world
+fn quest_state(brimstone_world: &BrimstoneWorld, quest: usize) -> QuestState {
+    brimstone_world
         .resources
         .adventure
         .quest(quest)
@@ -998,9 +998,9 @@ fn label(tree: &mut UiTreeBuilder, offset: Vec2, size: f32, color: Vec4) -> Enti
         .entity()
 }
 
-fn update_ui(cobalt_world: &CobaltWorld, world: &mut World) {
-    let handles = cobalt_world.resources.ui_handles.adventure;
-    let adventure = &cobalt_world.resources.adventure;
+fn update_ui(brimstone_world: &BrimstoneWorld, world: &mut World) {
+    let handles = brimstone_world.resources.ui_handles.adventure;
+    let adventure = &brimstone_world.resources.adventure;
     let area = &AREAS[adventure.area];
 
     ui_set_text(world, handles.area_label, area.name);
@@ -1009,8 +1009,8 @@ fn update_ui(cobalt_world: &CobaltWorld, world: &mut World) {
         handles.health_label,
         &format!(
             "HP  {:.0} / {:.0}",
-            cobalt_world.resources.stats.health.max(0.0),
-            cobalt_world.resources.stats.max_health
+            brimstone_world.resources.stats.health.max(0.0),
+            brimstone_world.resources.stats.max_health
         ),
     );
     ui_set_text(
@@ -1048,7 +1048,7 @@ fn update_ui(cobalt_world: &CobaltWorld, world: &mut World) {
     let show_panel = adventure.panel != AdvPanel::None;
     ui_set_visible(world, handles.panel_root, show_panel);
     if show_panel {
-        let (title, body) = panel_text(cobalt_world);
+        let (title, body) = panel_text(brimstone_world);
         ui_set_text(world, handles.panel_title, &title);
         ui_set_text(world, handles.panel_body, &body);
     }
@@ -1092,8 +1092,8 @@ fn prompt_text(adventure: &crate::ecs::AdventureState) -> String {
     }
 }
 
-fn panel_text(cobalt_world: &CobaltWorld) -> (String, String) {
-    let adventure = &cobalt_world.resources.adventure;
+fn panel_text(brimstone_world: &BrimstoneWorld) -> (String, String) {
+    let adventure = &brimstone_world.resources.adventure;
     match adventure.panel {
         AdvPanel::Dialogue => {
             let kind = adventure.dialogue_npc;
@@ -1103,7 +1103,7 @@ fn panel_text(cobalt_world: &CobaltWorld) -> (String, String) {
                 NpcRole::Merchant => body.push_str("[1] Trade\n[Esc] Leave"),
                 NpcRole::QuestGiver => {
                     let quest = def.quest.unwrap_or(0);
-                    match quest_state(cobalt_world, quest) {
+                    match quest_state(brimstone_world, quest) {
                         QuestState::Available => body.push_str(&format!(
                             "[1] Accept '{}'\n    {}\n[Esc] Leave",
                             QUESTS[quest].title, QUESTS[quest].summary

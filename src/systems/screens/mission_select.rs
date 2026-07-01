@@ -2,7 +2,7 @@
 //! tracked in [`crate::ecs::StoryState`] and persisted to disk by the director.
 
 use crate::campaign;
-use crate::ecs::{CobaltWorld, MissionSelectHandles, Screen};
+use crate::ecs::{BrimstoneWorld, MissionSelectHandles, Screen};
 use crate::systems::lifecycle;
 use crate::systems::screens::menu_button;
 use crate::systems::story;
@@ -93,17 +93,17 @@ pub fn build(tree: &mut UiTreeBuilder) -> MissionSelectHandles {
     }
 }
 
-pub fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    if !matches!(cobalt_world.resources.screen.current, Screen::MissionSelect) {
+pub fn handle_input(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    if !matches!(brimstone_world.resources.screen.current, Screen::MissionSelect) {
         return;
     }
-    let back = cobalt_world.resources.ui_handles.mission_select.back_button;
+    let back = brimstone_world.resources.ui_handles.mission_select.back_button;
     let mut selected = None;
     let mut clicked_back = false;
     for entity in ui_button_clicks(world) {
         if entity == back {
             clicked_back = true;
-        } else if let Some(index) = cobalt_world
+        } else if let Some(index) = brimstone_world
             .resources
             .ui_handles
             .mission_select
@@ -115,10 +115,10 @@ pub fn handle_input(cobalt_world: &mut CobaltWorld, world: &mut World) {
         }
     }
     if let Some(index) = selected {
-        if index <= cobalt_world.resources.story.unlocked {
-            story::launch_mission(cobalt_world, world, index);
+        if index <= brimstone_world.resources.story.unlocked {
+            story::launch_mission(brimstone_world, world, index);
         }
     } else if clicked_back {
-        lifecycle::enter(cobalt_world, world, Screen::Title);
+        lifecycle::enter(brimstone_world, world, Screen::Title);
     }
 }

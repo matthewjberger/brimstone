@@ -1,9 +1,9 @@
 /target
 THIRD_PARTY_LICENSES.html
-cobalt_best.txt
-cobalt_campaign.txt
-cobalt_custom_level.txt
-cobalt_settings.txt
+brimstone_best.txt
+brimstone_campaign.txt
+brimstone_custom_level.txt
+brimstone_settings.txt
 dist/
 level_*.png
 logs/

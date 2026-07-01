@@ -1,5 +1,5 @@
 use crate::content::{BlockKind, BlockSpec, Level, LevelData, atmosphere_for};
-use crate::ecs::CobaltWorld;
+use crate::ecs::BrimstoneWorld;
 use crate::systems::world::textures::{self, MAT_EXIT};
 use crate::tuning;
 use nalgebra_glm::{Vec3, vec3};
@@ -19,10 +19,10 @@ pub const PLAYER_SPAWN: Vec3 = Vec3::new(0.0, 1.2, 14.0);
 const WALL_HEIGHT: f32 = 12.0;
 const WALL_THICKNESS: f32 = 1.0;
 
-pub fn build(cobalt_world: &mut CobaltWorld, world: &mut World, level: &Level) {
+pub fn build(brimstone_world: &mut BrimstoneWorld, world: &mut World, level: &Level) {
     apply_environment(world, level.atmosphere, level.fog);
-    cobalt_world.resources.level.half_x = level.half_x;
-    cobalt_world.resources.level.half_z = level.half_z;
+    brimstone_world.resources.level.half_x = level.half_x;
+    brimstone_world.resources.level.half_z = level.half_z;
     let mut geometry = spawn_shell(world, level.half_x, level.half_z);
     let mut obstacles: Vec<(Vec3, Vec3)> = Vec::new();
 
@@ -75,15 +75,15 @@ pub fn build(cobalt_world: &mut CobaltWorld, world: &mut World, level: &Level) {
 
     let pads = spawn_pads(world, level.pads, &mut geometry);
     let exit_position = vec3(level.exit[0], 0.0, level.exit[1]);
-    finalize_level(cobalt_world, world, geometry, pads, exit_position);
+    finalize_level(brimstone_world, world, geometry, pads, exit_position);
     rebuild_navmesh(world, &obstacles, level.half_x, level.half_z);
 }
 
 /// Build a level from owned editor/custom data (no beacons or ramps).
-pub fn build_dynamic(cobalt_world: &mut CobaltWorld, world: &mut World, data: &LevelData) {
+pub fn build_dynamic(brimstone_world: &mut BrimstoneWorld, world: &mut World, data: &LevelData) {
     apply_environment(world, atmosphere_for(data.atmosphere_index), data.fog);
-    cobalt_world.resources.level.half_x = tuning::ARENA_HALF;
-    cobalt_world.resources.level.half_z = tuning::ARENA_HALF;
+    brimstone_world.resources.level.half_x = tuning::ARENA_HALF;
+    brimstone_world.resources.level.half_z = tuning::ARENA_HALF;
     let mut geometry = spawn_shell(world, tuning::ARENA_HALF, tuning::ARENA_HALF);
     let mut obstacles: Vec<(Vec3, Vec3)> = Vec::new();
 
@@ -102,7 +102,7 @@ pub fn build_dynamic(cobalt_world: &mut CobaltWorld, world: &mut World, data: &L
 
     let pads = spawn_pads(world, &data.pads, &mut geometry);
     let exit_position = vec3(data.exit[0], 0.0, data.exit[1]);
-    finalize_level(cobalt_world, world, geometry, pads, exit_position);
+    finalize_level(brimstone_world, world, geometry, pads, exit_position);
     rebuild_navmesh(world, &obstacles, tuning::ARENA_HALF, tuning::ARENA_HALF);
 }
 
@@ -236,13 +236,13 @@ fn spawn_pads(world: &mut World, pads: &[(f32, f32)], geometry: &mut Vec<Entity>
 }
 
 fn finalize_level(
-    cobalt_world: &mut CobaltWorld,
+    brimstone_world: &mut BrimstoneWorld,
     world: &mut World,
     mut geometry: Vec<Entity>,
     pads: Vec<Vec3>,
     exit_position: Vec3,
 ) {
-    cobalt_world.resources.level.pads = pads;
+    brimstone_world.resources.level.pads = pads;
 
     let exit = spawn_mesh_at(
         world,
@@ -270,17 +270,17 @@ fn finalize_level(
         28.0,
     ));
 
-    cobalt_world.resources.level.geometry = geometry;
-    cobalt_world.resources.level.exit_entity = Some(exit);
-    cobalt_world.resources.level.exit_position = exit_position;
-    cobalt_world.resources.level.exit_active = false;
+    brimstone_world.resources.level.geometry = geometry;
+    brimstone_world.resources.level.exit_entity = Some(exit);
+    brimstone_world.resources.level.exit_position = exit_position;
+    brimstone_world.resources.level.exit_active = false;
 }
 
-pub fn despawn(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    for entity in cobalt_world.resources.level.geometry.drain(..) {
+pub fn despawn(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    for entity in brimstone_world.resources.level.geometry.drain(..) {
         despawn_recursive_immediate(world, entity);
     }
-    cobalt_world.resources.level.exit_entity = None;
+    brimstone_world.resources.level.exit_entity = None;
     clear_navmesh(world);
 }
 
@@ -357,14 +357,14 @@ fn push_box(vertices: &mut Vec<[f32; 3]>, indices: &mut Vec<[u32; 3]>, center: V
     }
 }
 
-pub fn open_exit(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    cobalt_world.resources.level.exit_active = true;
-    if let Some(exit) = cobalt_world.resources.level.exit_entity {
+pub fn open_exit(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    brimstone_world.resources.level.exit_active = true;
+    if let Some(exit) = brimstone_world.resources.level.exit_entity {
         world
             .core
             .set_visibility(exit, Visibility { visible: true });
     }
-    let position = cobalt_world.resources.level.exit_position;
+    let position = brimstone_world.resources.level.exit_position;
     let lamp = spawn_lamp(
         world,
         vec3(position.x, 2.5, position.z),
@@ -372,7 +372,7 @@ pub fn open_exit(cobalt_world: &mut CobaltWorld, world: &mut World) {
         60.0,
         18.0,
     );
-    cobalt_world.resources.level.geometry.push(lamp);
+    brimstone_world.resources.level.geometry.push(lamp);
 }
 
 pub fn material_for(kind: BlockKind) -> Material {

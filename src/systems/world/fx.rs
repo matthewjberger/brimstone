@@ -1,4 +1,4 @@
-use crate::ecs::CobaltWorld;
+use crate::ecs::BrimstoneWorld;
 use nalgebra_glm::{Vec3, Vec4, vec3, vec4};
 use nightshade::ecs::light::components::{Light, LightType};
 use nightshade::ecs::lines::components::{Line, Lines};
@@ -12,8 +12,8 @@ const BURST_TTL: f32 = 1.6;
 const EXPLOSION_TTL: f32 = 3.8;
 const TRACER_TTL: f32 = 0.05;
 
-fn track(cobalt_world: &mut CobaltWorld, entity: Entity, ttl: f32) {
-    cobalt_world.resources.transient.items.push((entity, ttl));
+fn track(brimstone_world: &mut BrimstoneWorld, entity: Entity, ttl: f32) {
+    brimstone_world.resources.transient.items.push((entity, ttl));
 }
 
 fn gradient(color: Vec3) -> ColorGradient {
@@ -48,7 +48,7 @@ fn muzzle_gradient(color: Vec3) -> ColorGradient {
 }
 
 pub fn muzzle(
-    cobalt_world: &mut CobaltWorld,
+    brimstone_world: &mut BrimstoneWorld,
     world: &mut World,
     position: Vec3,
     forward: Vec3,
@@ -78,7 +78,7 @@ pub fn muzzle(
     };
     let flame_entity = spawn_entities(world, NAME | PARTICLE_EMITTER, 1)[0];
     world.core.set_particle_emitter(flame_entity, flame);
-    track(cobalt_world, flame_entity, 0.4);
+    track(brimstone_world, flame_entity, 0.4);
 
     // Fast white sparks off the muzzle.
     let sparks = ParticleEmitter {
@@ -104,7 +104,7 @@ pub fn muzzle(
     };
     let spark_entity = spawn_entities(world, NAME | PARTICLE_EMITTER, 1)[0];
     world.core.set_particle_emitter(spark_entity, sparks);
-    track(cobalt_world, spark_entity, 0.4);
+    track(brimstone_world, spark_entity, 0.4);
 
     // A brief flash of light that lights up the scene for a couple of frames.
     let light = spawn_light_entity(world, position, "MuzzleFlash");
@@ -118,10 +118,10 @@ pub fn muzzle(
             ..Default::default()
         },
     );
-    track(cobalt_world, light, 0.06);
+    track(brimstone_world, light, 0.06);
 }
 
-pub fn hit(cobalt_world: &mut CobaltWorld, world: &mut World, position: Vec3, color: Vec3) {
+pub fn hit(brimstone_world: &mut BrimstoneWorld, world: &mut World, position: Vec3, color: Vec3) {
     let emitter = ParticleEmitter {
         emitter_type: EmitterType::Sparks,
         shape: EmitterShape::Sphere { radius: 0.18 },
@@ -145,11 +145,11 @@ pub fn hit(cobalt_world: &mut CobaltWorld, world: &mut World, position: Vec3, co
     };
     let entity = spawn_entities(world, NAME | PARTICLE_EMITTER, 1)[0];
     world.core.set_particle_emitter(entity, emitter);
-    track(cobalt_world, entity, BURST_TTL);
+    track(brimstone_world, entity, BURST_TTL);
 }
 
 pub fn death(
-    cobalt_world: &mut CobaltWorld,
+    brimstone_world: &mut BrimstoneWorld,
     world: &mut World,
     position: Vec3,
     color: Vec3,
@@ -160,11 +160,11 @@ pub fn death(
         entity,
         ParticleEmitter::firework_explosion(position, color, count),
     );
-    track(cobalt_world, entity, EXPLOSION_TTL);
+    track(brimstone_world, entity, EXPLOSION_TTL);
 }
 
 pub fn tracer(
-    cobalt_world: &mut CobaltWorld,
+    brimstone_world: &mut BrimstoneWorld,
     world: &mut World,
     start: Vec3,
     end: Vec3,
@@ -180,14 +180,14 @@ pub fn tracer(
     world
         .core
         .set_global_transform(entity, GlobalTransform::default());
-    track(cobalt_world, entity, TRACER_TTL);
+    track(brimstone_world, entity, TRACER_TTL);
 }
 
 /// A short-lived procedural lightning arc between two points (the tesla cannon).
 /// The engine's vfx system regenerates its jagged path into the entity's lines
 /// each frame; we just despawn it after a brief life.
 pub fn lightning(
-    cobalt_world: &mut CobaltWorld,
+    brimstone_world: &mut BrimstoneWorld,
     world: &mut World,
     start: Vec3,
     end: Vec3,
@@ -221,16 +221,16 @@ pub fn lightning(
             ..Default::default()
         },
     );
-    track(cobalt_world, entity, ttl);
+    track(brimstone_world, entity, ttl);
 }
 
-pub fn tick(cobalt_world: &mut CobaltWorld, world: &mut World) {
+pub fn tick(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
     let mut index = 0;
-    while index < cobalt_world.resources.transient.items.len() {
-        cobalt_world.resources.transient.items[index].1 -= delta;
-        if cobalt_world.resources.transient.items[index].1 <= 0.0 {
-            let (entity, _) = cobalt_world.resources.transient.items.swap_remove(index);
+    while index < brimstone_world.resources.transient.items.len() {
+        brimstone_world.resources.transient.items[index].1 -= delta;
+        if brimstone_world.resources.transient.items[index].1 <= 0.0 {
+            let (entity, _) = brimstone_world.resources.transient.items.swap_remove(index);
             queue_ecs_command(world, EcsCommand::DespawnRecursive { entity });
         } else {
             index += 1;

@@ -1,4 +1,4 @@
-use crate::ecs::{CobaltWorld, ENEMY, EnemyState, Projectile};
+use crate::ecs::{BrimstoneWorld, ENEMY, EnemyState, Projectile};
 use crate::systems::world::textures::{MAT_FIREBALL, MAT_ROCKET};
 use crate::systems::world::{audio, billboard, enemies, fx, game, player};
 use crate::tuning;
@@ -19,7 +19,7 @@ struct Blast {
 }
 
 pub fn spawn(
-    cobalt_world: &mut CobaltWorld,
+    brimstone_world: &mut BrimstoneWorld,
     world: &mut World,
     origin: Vec3,
     target: Vec3,
@@ -36,7 +36,7 @@ pub fn spawn(
         origin,
         vec3(tuning::FIREBALL_SCALE, tuning::FIREBALL_SCALE, 1.0),
     );
-    cobalt_world.resources.projectiles.items.push(Projectile {
+    brimstone_world.resources.projectiles.items.push(Projectile {
         entity,
         position: origin,
         velocity,
@@ -48,7 +48,7 @@ pub fn spawn(
 }
 
 pub fn spawn_rocket(
-    cobalt_world: &mut CobaltWorld,
+    brimstone_world: &mut BrimstoneWorld,
     world: &mut World,
     origin: Vec3,
     forward: Vec3,
@@ -64,7 +64,7 @@ pub fn spawn_rocket(
         origin,
         vec3(tuning::ROCKET_SCALE, tuning::ROCKET_SCALE, 1.0),
     );
-    cobalt_world.resources.projectiles.items.push(Projectile {
+    brimstone_world.resources.projectiles.items.push(Projectile {
         entity,
         position: origin,
         velocity,
@@ -75,15 +75,15 @@ pub fn spawn_rocket(
     });
 }
 
-pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
+pub fn update(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
     let delta = world.resources.window.timing.delta_time.clamp(0.0, 0.1);
-    let player_entity = cobalt_world.resources.player.player_entity;
-    let player_center = player::position(cobalt_world, world);
+    let player_entity = brimstone_world.resources.player.player_entity;
+    let player_center = player::position(brimstone_world, world);
 
-    let enemy_targets: Vec<(Entity, Vec3, f32)> = cobalt_world
+    let enemy_targets: Vec<(Entity, Vec3, f32)> = brimstone_world
         .query_entities(ENEMY)
         .filter_map(|game_entity| {
-            let enemy = cobalt_world.get_enemy(game_entity)?;
+            let enemy = brimstone_world.get_enemy(game_entity)?;
             if enemy.state == EnemyState::Dying {
                 None
             } else {
@@ -93,7 +93,7 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         })
         .collect();
 
-    let mut items = std::mem::take(&mut cobalt_world.resources.projectiles.items);
+    let mut items = std::mem::take(&mut brimstone_world.resources.projectiles.items);
     let mut removed: Vec<(Entity, Blast)> = Vec::new();
 
     items.retain_mut(|item| {
@@ -152,43 +152,43 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         true
     });
 
-    cobalt_world.resources.projectiles.items = items;
+    brimstone_world.resources.projectiles.items = items;
 
     for (entity, blast) in removed {
         queue_ecs_command(world, EcsCommand::DespawnRecursive { entity });
         if blast.hostile {
-            fx::hit(cobalt_world, world, blast.position, vec3(1.0, 0.5, 0.2));
+            fx::hit(brimstone_world, world, blast.position, vec3(1.0, 0.5, 0.2));
             if blast.hit_player {
-                game::damage_player(cobalt_world, world, blast.damage);
+                game::damage_player(brimstone_world, world, blast.damage);
             }
         } else {
-            explode(cobalt_world, world, &blast);
+            explode(brimstone_world, world, &blast);
         }
     }
 }
 
-fn explode(cobalt_world: &mut CobaltWorld, world: &mut World, blast: &Blast) {
+fn explode(brimstone_world: &mut BrimstoneWorld, world: &mut World, blast: &Blast) {
     let radius = blast.splash_radius.max(0.1);
     fx::death(
-        cobalt_world,
+        brimstone_world,
         world,
         blast.position,
         vec3(0.5, 0.75, 1.0),
         80,
     );
-    fx::hit(cobalt_world, world, blast.position, vec3(0.6, 0.85, 1.0));
-    cobalt_world.resources.game.shake += tuning::ROCKET_SHAKE;
-    cobalt_world.resources.game.hitstop = cobalt_world
+    fx::hit(brimstone_world, world, blast.position, vec3(0.6, 0.85, 1.0));
+    brimstone_world.resources.game.shake += tuning::ROCKET_SHAKE;
+    brimstone_world.resources.game.hitstop = brimstone_world
         .resources
         .game
         .hitstop
         .max(tuning::ROCKET_HITSTOP);
-    audio::play(cobalt_world, world, audio::EXPLOSION, 1.0);
+    audio::play(brimstone_world, world, audio::EXPLOSION, 1.0);
 
-    let targets: Vec<(Entity, Vec3, f32)> = cobalt_world
+    let targets: Vec<(Entity, Vec3, f32)> = brimstone_world
         .query_entities(ENEMY)
         .filter_map(|game_entity| {
-            let enemy = cobalt_world.get_enemy(game_entity)?;
+            let enemy = brimstone_world.get_enemy(game_entity)?;
             if enemy.state == EnemyState::Dying {
                 None
             } else {
@@ -213,18 +213,18 @@ fn explode(cobalt_world: &mut CobaltWorld, world: &mut World, blast: &Blast) {
             offset = vec3(0.0, 1.0, 0.0);
         }
         let knockback = offset.normalize() * tuning::ROCKET_KNOCKBACK * falloff;
-        enemies::damage(cobalt_world, world, enemy_entity, damage, center, knockback);
+        enemies::damage(brimstone_world, world, enemy_entity, damage, center, knockback);
     }
 
-    rocket_jump(cobalt_world, world, blast.position, radius);
+    rocket_jump(brimstone_world, world, blast.position, radius);
 }
 
 /// Catch yourself in the blast and ride it — the genre-defining rocket-jump.
-fn rocket_jump(cobalt_world: &mut CobaltWorld, world: &mut World, position: Vec3, radius: f32) {
-    let Some(player) = cobalt_world.resources.player.player_entity else {
+fn rocket_jump(brimstone_world: &mut BrimstoneWorld, world: &mut World, position: Vec3, radius: f32) {
+    let Some(player) = brimstone_world.resources.player.player_entity else {
         return;
     };
-    let player_center = player::position(cobalt_world, world);
+    let player_center = player::position(brimstone_world, world);
     let mut away = player_center - position;
     let distance = away.norm();
     if distance >= radius {
@@ -240,7 +240,7 @@ fn rocket_jump(cobalt_world: &mut CobaltWorld, world: &mut World, position: Vec3
     if let Some(controller) = world.core.get_character_controller_mut(player) {
         controller.velocity += away * tuning::ROCKET_SELF_PUSH * falloff;
     }
-    game::damage_player(cobalt_world, world, tuning::ROCKET_SELF_DAMAGE * falloff);
+    game::damage_player(brimstone_world, world, tuning::ROCKET_SELF_DAMAGE * falloff);
 }
 
 fn ray_sphere(origin: Vec3, direction: Vec3, center: Vec3, radius: f32) -> Option<f32> {
@@ -262,8 +262,8 @@ fn ray_sphere(origin: Vec3, direction: Vec3, center: Vec3, radius: f32) -> Optio
     None
 }
 
-pub fn despawn_all(cobalt_world: &mut CobaltWorld, world: &mut World) {
-    for projectile in cobalt_world.resources.projectiles.items.drain(..) {
+pub fn despawn_all(brimstone_world: &mut BrimstoneWorld, world: &mut World) {
+    for projectile in brimstone_world.resources.projectiles.items.drain(..) {
         queue_ecs_command(
             world,
             EcsCommand::DespawnRecursive {
