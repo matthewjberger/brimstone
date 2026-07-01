@@ -375,11 +375,7 @@ fn load_area(brimstone_world: &mut BrimstoneWorld, world: &mut World, area_index
 
     level::apply_environment(world, area.atmosphere, area.fog);
     let mut geometry = if area.overworld {
-        overworld::enter(
-            world,
-            area.blocks,
-            vec3(area.spawn[0], area.spawn[1], area.spawn[2]),
-        )
+        overworld::enter(world, vec3(area.spawn[0], area.spawn[1], area.spawn[2]))
     } else {
         overworld::leave(world);
         level::build_arena(world, area.blocks, area.half_x, area.half_z)

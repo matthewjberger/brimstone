@@ -5,7 +5,6 @@
 //! reached from out here, so dense navmesh combat stays inside them while the
 //! overworld stays open.
 
-use crate::content::BlockSpec;
 use crate::systems::world::level;
 use nalgebra_glm::Vec3;
 use nightshade::ecs::graphics::resources::Fog;
@@ -28,9 +27,9 @@ const FOG_COLOR: [f32; 3] = [0.46, 0.53, 0.66];
 const FOG_START: f32 = 240.0;
 const FOG_END: f32 = 1300.0;
 
-/// Turn on the streamed terrain and return the sun plus the area's solid blocks as
-/// free-standing props. Primes colliders at `spawn` so the player lands on ground.
-pub fn enter(world: &mut World, blocks: &[BlockSpec], spawn: Vec3) -> Vec<Entity> {
+/// Turn on the streamed terrain and grass and return the sun plus the town of
+/// Rivermoor. Primes colliders at `spawn` so the player lands on the ground.
+pub fn enter(world: &mut World, spawn: Vec3) -> Vec<Entity> {
     let terrain = &mut world.resources.terrain;
     terrain.enabled = true;
     terrain.seed = OVERWORLD_SEED;
@@ -61,7 +60,7 @@ pub fn enter(world: &mut World, blocks: &[BlockSpec], spawn: Vec3) -> Vec<Entity
     terrain_collider_system(world, spawn);
 
     let mut geometry = vec![spawn_sun(world)];
-    geometry.extend(level::spawn_props(world, blocks));
+    geometry.extend(level::spawn_town(world));
     geometry
 }
 

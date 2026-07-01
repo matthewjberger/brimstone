@@ -144,22 +144,83 @@ pub fn build_arena(
     geometry
 }
 
-/// Spawn the given solid blocks as free-standing props (no perimeter shell,
-/// navmesh, or fill lighting) for the open-world overworld, where the streamed
-/// terrain is the ground rather than a flat floor. Returns them for teardown.
-pub fn spawn_props(world: &mut World, blocks: &[BlockSpec]) -> Vec<Entity> {
-    blocks
-        .iter()
-        .map(|(cx, cy, cz, sx, sy, sz, kind)| {
-            spawn_block(
-                world,
-                "Block",
-                vec3(*cx, *cy, *cz),
-                vec3(*sx, *sy, *sz),
-                material_for(*kind),
-            )
-        })
-        .collect()
+/// Build the overworld town of Rivermoor on the flat spawn area: a central plaza
+/// obelisk and a ring of solid, walkable houses with lit windows. Returns every
+/// part for teardown. The streamed terrain is the ground, so everything sits at
+/// the flattened base height of zero.
+pub fn spawn_town(world: &mut World) -> Vec<Entity> {
+    let mut parts = Vec::new();
+    parts.push(spawn_block(
+        world,
+        "PlazaObelisk",
+        vec3(0.0, 5.0, 0.0),
+        vec3(2.4, 10.0, 2.4),
+        textures::pillar_material(),
+    ));
+    parts.push(spawn_lamp(
+        world,
+        vec3(0.0, 10.6, 0.0),
+        vec3(1.7, 1.2, 0.6),
+        26.0,
+        44.0,
+    ));
+
+    // (x, z, width, depth, height) — a loose ring leaving the inner square, the
+    // south gate road, and the NPC spots clear.
+    const HOUSES: &[(f32, f32, f32, f32, f32)] = &[
+        (24.0, 8.0, 7.0, 6.0, 3.6),
+        (19.0, -18.0, 6.0, 7.0, 3.2),
+        (-26.0, 24.0, 8.0, 6.0, 4.0),
+        (-22.0, 13.0, 6.0, 6.0, 3.4),
+        (-27.0, -11.0, 7.0, 6.0, 3.6),
+        (-13.0, -27.0, 6.0, 7.0, 3.2),
+        (15.0, 23.0, 6.0, 6.0, 3.4),
+        (31.0, -7.0, 7.0, 7.0, 4.2),
+        (-31.0, -25.0, 8.0, 7.0, 3.8),
+    ];
+    for &(x, z, width, depth, height) in HOUSES {
+        spawn_house(world, &mut parts, vec3(x, 0.0, z), width, depth, height);
+    }
+    parts
+}
+
+fn spawn_house(
+    world: &mut World,
+    parts: &mut Vec<Entity>,
+    base: Vec3,
+    width: f32,
+    depth: f32,
+    height: f32,
+) {
+    parts.push(spawn_block(
+        world,
+        "House",
+        base + vec3(0.0, height * 0.5, 0.0),
+        vec3(width, height, depth),
+        textures::wall_material(),
+    ));
+    parts.push(spawn_block(
+        world,
+        "Roof",
+        base + vec3(0.0, height + 0.7, 0.0),
+        vec3(width + 0.8, 1.4, depth + 0.8),
+        textures::platform_material(),
+    ));
+    // A warm lit window on the south face so the village glows at dusk.
+    parts.push(spawn_block(
+        world,
+        "Window",
+        base + vec3(0.0, height * 0.52, depth * 0.5 + 0.16),
+        vec3(width * 0.32, height * 0.34, 0.3),
+        textures::beacon_material(vec3(1.5, 1.05, 0.5), 2.6),
+    ));
+    parts.push(spawn_lamp(
+        world,
+        base + vec3(0.0, height * 0.55, depth * 0.5 + 0.9),
+        vec3(1.6, 1.1, 0.5),
+        6.0,
+        11.0,
+    ));
 }
 
 /// A coloured point light at `position` for adventure-mode accent lighting.
