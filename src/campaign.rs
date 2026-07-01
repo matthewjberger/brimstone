@@ -7,7 +7,7 @@ pub enum Objective {
     /// Wipe out every wave, then the gate opens.
     #[default]
     Exterminate,
-    /// The gate is open from the start — punch through the horde and escape.
+    /// The gate is open from the start - punch through the horde and escape.
     Reach,
     /// A warlord anchors the final wave; clear the floor to open the gate.
     Boss,
@@ -21,7 +21,7 @@ impl Objective {
             Objective::Exterminate => "EXTERMINATE THE HORDE",
             Objective::Reach => "REACH THE GATE",
             Objective::Boss => "KILL THE WARLORD",
-            Objective::Keycard => "RECOVER THE KEYCARD",
+            Objective::Keycard => "SEIZE THE POWER CORE",
         }
     }
 }
@@ -63,7 +63,7 @@ pub const CAMPAIGN: &[Mission] = &[
         title: "THE FOUNDRY",
         objective: Objective::Exterminate,
         key: [0.0, 0.0, 0.0],
-        briefing: "You breach the foundry deck. A live reactor fills the hall — circle its apron, hold the gantry towers for the high ground, and clear every last one of them.",
+        briefing: "You breach the foundry deck. A live reactor fills the hall - circle its apron, hold the gantry towers for the high ground, and clear every last one of them.",
         debrief: "Foundry cold. The deck climbs into an open spire hall, and the air above it is already moving.",
     },
     Mission {
@@ -78,9 +78,9 @@ pub const CAMPAIGN: &[Mission] = &[
         level: 2,
         title: "THE WARRENS",
         objective: Objective::Keycard,
-        key: [-36.0, 0.0, -26.0],
-        briefing: "The core gate is locked. The keycard sits in a sealed vault in the far northwest of the warren — thread the chambers, take it off the shrine, then run the gate.",
-        debrief: "Keycard in hand, the warrens fall behind you. The core chamber glows red ahead.",
+        key: [38.0, 0.0, -2.0],
+        briefing: "The core gate is locked. A power core sits deep in the east burial chamber. Thread the crossroads, seize it off the shrine, then run for the gate.",
+        debrief: "Core in hand, the warrens fall behind you. The crucible glows red ahead.",
     },
     Mission {
         level: 3,

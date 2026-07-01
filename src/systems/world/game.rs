@@ -53,6 +53,14 @@ pub fn load_level(cobalt_world: &mut CobaltWorld, world: &mut World, absolute_in
     let waves = build_waves(cobalt_world, roster, cycle);
     arm_waves(cobalt_world, waves);
 
+    // Levels with a power core are lock-and-key: the exit stays sealed until the
+    // core is seized from its spoke, so you explore rather than camp the entrance.
+    if let Some(key) = definition.key {
+        cobalt_world.resources.level.objective = Objective::Keycard;
+        cobalt_world.resources.game.has_key = false;
+        pickups::spawn_keycard(cobalt_world, world, vec3(key[0], key[1], key[2]));
+    }
+
     pickups::spawn_initial(cobalt_world, world);
 }
 

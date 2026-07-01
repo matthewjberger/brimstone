@@ -107,7 +107,7 @@ pub const PISTOL_SHAKE: f32 = 0.05;
 pub const PISTOL_KICK: f32 = 0.12;
 pub const PISTOL_FOV_POP: f32 = 1.4;
 
-// Tesla cannon (press-and-hold beam — a chain-lightning arc locked on the
+// Tesla cannon (press-and-hold beam, a chain-lightning arc locked on the
 // nearest enemy ahead, damaging in rapid ticks while the trigger is held)
 pub const TESLA_RANGE: f32 = 24.0;
 /// Max distance the arc jumps from one enemy to the next.

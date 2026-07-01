@@ -317,7 +317,8 @@ pub fn update(cobalt_world: &CobaltWorld, world: &mut World) {
         &format!("{}   WAVE {}/{}", level_name, level.wave, level.wave_count),
     );
 
-    let show_objective = playing && level.story;
+    let show_objective = playing
+        && (level.story || !matches!(level.objective, crate::campaign::Objective::Exterminate));
     ui_set_visible(world, hud.objective_label, show_objective);
     if show_objective {
         let text = if level.exit_active {
@@ -331,7 +332,7 @@ pub fn update(cobalt_world: &CobaltWorld, world: &mut World) {
                     if game.has_key {
                         "REACH THE GATE"
                     } else {
-                        "FIND THE KEYCARD"
+                        "SEIZE THE POWER CORE"
                     }
                 }
             }
