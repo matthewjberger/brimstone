@@ -1,6 +1,6 @@
 use super::components::EnemyKind;
 use crate::tuning;
-use nalgebra_glm::Vec3;
+use nalgebra_glm::{Vec2, Vec3};
 use nightshade::prelude::Entity;
 
 /// A queued spawn: which enemy kind, whether it is an elite variant, and
@@ -253,6 +253,8 @@ pub struct WeaponState {
     pub cooldown: f32,
     /// Brief crosshair kick when a shot lands.
     pub hit_marker: f32,
+    /// Decaying [0,1] kick set on every shot; drives the viewmodel recoil.
+    pub recoil: f32,
 }
 
 impl WeaponState {
@@ -278,6 +280,7 @@ impl Default for WeaponState {
             pools: std::array::from_fn(|slot| WeaponKind::ALL[slot].start_ammo()),
             cooldown: 0.0,
             hit_marker: 0.0,
+            recoil: 0.0,
         }
     }
 }
@@ -631,6 +634,22 @@ pub struct AdventureHandles {
     pub panel_root: Entity,
     pub panel_title: Entity,
     pub panel_body: Entity,
+}
+
+/// First-person weapon viewmodel: the bottom-screen gun sprite. The
+/// UI node is built once; each weapon's uploaded image (UI texture layer + UV
+/// sub-rect) is cached and swapped in, and the node is offset per frame for bob
+/// and recoil. Purely cosmetic — aim and hit detection are unaffected.
+#[derive(Default)]
+pub struct ViewmodelState {
+    pub node: Entity,
+    /// Per-weapon UI image as (texture layer, uv_min, uv_max), indexed by
+    /// [`WeaponKind::index`].
+    pub images: Vec<(u32, Vec2, Vec2)>,
+    /// Weapon index currently displayed, or -1 if not yet set.
+    pub shown: i32,
+    pub bob_phase: f32,
+    pub last_position: Vec3,
 }
 
 #[derive(Default)]

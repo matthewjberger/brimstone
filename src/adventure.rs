@@ -485,6 +485,7 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
     player::apply_camera_feel(cobalt_world, world);
     billboard::update(cobalt_world, world);
     fx::tick(cobalt_world, world);
+    crate::systems::world::viewmodel::update(cobalt_world, world);
 
     update_npcs(cobalt_world, world, delta);
     maintain_enemies(cobalt_world, world, delta);

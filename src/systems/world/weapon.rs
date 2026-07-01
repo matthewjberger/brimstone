@@ -2,7 +2,7 @@ use crate::ecs::{CobaltWorld, ENEMY, EnemyState, WeaponKind, WeaponState};
 use crate::systems::common::random_range;
 use crate::systems::world::{audio, enemies, fx, projectiles};
 use crate::tuning;
-use nalgebra_glm::{Vec3, Vec4, dot, vec4};
+use nalgebra_glm::{Vec3, Vec4, dot, vec3, vec4};
 use nightshade::ecs::input::queries::query_active_gamepad;
 use nightshade::ecs::input::resources::MouseState;
 use nightshade::ecs::physics::resources::physics_world_cast_ray;
@@ -86,6 +86,8 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         (cobalt_world.resources.weapon.cooldown - delta).max(0.0);
     cobalt_world.resources.weapon.hit_marker =
         (cobalt_world.resources.weapon.hit_marker - delta).max(0.0);
+    cobalt_world.resources.weapon.recoil =
+        (cobalt_world.resources.weapon.recoil - delta * 7.0).max(0.0);
 
     switch_weapons(cobalt_world, world);
     auto_equip_sidearm(&mut cobalt_world.resources.weapon);
@@ -119,6 +121,7 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         *cobalt_world.resources.weapon.ammo_mut(kind) -= 1;
     }
     cobalt_world.resources.weapon.cooldown = stats.cooldown;
+    cobalt_world.resources.weapon.recoil = 1.0;
     cobalt_world.resources.game.shake += stats.shake;
     cobalt_world.resources.game.cam_kick += stats.kick;
     cobalt_world.resources.game.fov_pop = cobalt_world.resources.game.fov_pop.max(stats.fov_pop);
@@ -135,7 +138,13 @@ pub fn update(cobalt_world: &mut CobaltWorld, world: &mut World) {
         return;
     };
     let muzzle = origin + forward * 0.6 - up * 0.12 + right * 0.12;
-    fx::muzzle(cobalt_world, world, muzzle, forward);
+    fx::muzzle(
+        cobalt_world,
+        world,
+        muzzle,
+        forward,
+        vec3(stats.tracer.x, stats.tracer.y, stats.tracer.z),
+    );
 
     if matches!(kind, WeaponKind::Rocket) {
         projectiles::spawn_rocket(cobalt_world, world, muzzle, forward);

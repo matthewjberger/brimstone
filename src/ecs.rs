@@ -28,6 +28,7 @@ freecs::ecs! {
         projectiles: ProjectileState,
         transient: TransientState,
         audio: AudioPool,
+        viewmodel: ViewmodelState,
         ui_handles: UiHandles,
     }
 }

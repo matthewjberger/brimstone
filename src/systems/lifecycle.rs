@@ -1,6 +1,6 @@
 use crate::ecs::{CobaltWorld, Screen, UiHandles};
 use crate::systems::screens::{cutscene, hud, level_select, mission_select, pause, title};
-use crate::systems::world::{audio, game, player, textures};
+use crate::systems::world::{audio, game, player, textures, viewmodel};
 use nightshade::ecs::graphics::resources::ColorGradingPreset;
 use nightshade::prelude::*;
 
@@ -24,10 +24,12 @@ pub fn initialize(cobalt_world: &mut CobaltWorld, world: &mut World) {
 
     textures::load(world);
     audio::load(world);
+    viewmodel::load(cobalt_world, world);
     player::spawn(cobalt_world, world);
     game::start_at(cobalt_world, world, 0);
 
     let mut tree = UiTreeBuilder::new(world);
+    let viewmodel_node = viewmodel::build(&mut tree, &cobalt_world.resources.viewmodel.images);
     let title_handles = title::build(&mut tree);
     let level_select_handles = level_select::build(&mut tree);
     let pause_handles = pause::build(&mut tree);
@@ -45,6 +47,7 @@ pub fn initialize(cobalt_world: &mut CobaltWorld, world: &mut World) {
     cobalt_world.resources.ui_handles.editor = editor_handles;
     cobalt_world.resources.ui_handles.cutscene = cutscene_handles;
     cobalt_world.resources.ui_handles.adventure = adventure_handles;
+    cobalt_world.resources.viewmodel.node = viewmodel_node;
 
     enter(cobalt_world, world, Screen::Title);
 }
@@ -158,5 +161,10 @@ fn apply_visibility(cobalt_world: &CobaltWorld, world: &mut World) {
         world,
         handles.adventure.root,
         matches!(screen, Screen::Adventure),
+    );
+    ui_set_visible(
+        world,
+        cobalt_world.resources.viewmodel.node,
+        matches!(screen, Screen::InGame | Screen::Paused | Screen::Adventure),
     );
 }

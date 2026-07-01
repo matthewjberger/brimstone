@@ -137,6 +137,7 @@ impl Brimstone {
             systems::world::player::apply_camera_feel(&mut self.cobalt_world, world);
             systems::world::billboard::update(&mut self.cobalt_world, world);
             systems::world::fx::tick(&mut self.cobalt_world, world);
+            systems::world::viewmodel::update(&mut self.cobalt_world, world);
         }
 
         crate::adventure::update(&mut self.cobalt_world, world);

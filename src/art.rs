@@ -231,7 +231,11 @@ fn caster_color(symbol: char, hurt: bool) -> [u8; 4] {
 
 fn render_grid(grid: &[&str], color: impl Fn(char) -> [u8; 4]) -> Sprite {
     let rows = grid.len() as u32;
-    let cols = grid[0].len() as u32;
+    let cols = grid
+        .iter()
+        .map(|row| row.chars().count())
+        .max()
+        .unwrap_or(0) as u32;
     let width = cols * SCALE;
     let height = rows * SCALE;
     let mut rgba = vec![0u8; (width * height * 4) as usize];
@@ -335,82 +339,64 @@ fn put(sprite: &mut Sprite, x: u32, y: u32, pixel: [u8; 4]) {
     sprite.rgba[index + 3] = pixel[3];
 }
 
-fn fill_rect(sprite: &mut Sprite, x0: u32, y0: u32, x1: u32, y1: u32, pixel: [u8; 4]) {
-    for y in y0..y1 {
-        for x in x0..x1 {
-            put(sprite, x, y, pixel);
-        }
+// Pickup items, hand-drawn in the same grid style as the enemies.
+fn item_color(symbol: char) -> [u8; 4] {
+    match symbol {
+        'o' => [24, 20, 14, 255],
+        'w' => [236, 240, 236, 255],
+        'r' => [220, 44, 40, 255],
+        'm' => [64, 58, 44, 255],
+        'a' => [240, 196, 72, 255],
+        'b' => [250, 214, 92, 255],
+        'c' => [230, 196, 40, 255],
+        's' => [40, 32, 12, 255],
+        'h' => [250, 240, 180, 255],
+        _ => [0, 0, 0, 0],
     }
 }
 
+const MEDKIT: &[&str] = &[
+    "...ooooooo...",
+    ".ooooooooooo.",
+    ".owwwwwwwwwo.",
+    ".owwwwrwwwwo.",
+    ".owwwwrwwwwo.",
+    ".owwrrrrrwwo.",
+    ".owwrrrrrwwo.",
+    ".owwwwrwwwwo.",
+    ".owwwwrwwwwo.",
+    ".owwwwwwwwwo.",
+    ".ooooooooooo.",
+];
+
+const AMMO_BOX: &[&str] = &[
+    "..b.b.b.b.b..",
+    "..m.m.m.m.m..",
+    ".ooooooooooo.",
+    ".ommmmmmmmmo.",
+    ".oaaaaaaaaao.",
+    ".ommmmmmmmmo.",
+    ".ommmmmmmmmo.",
+    ".ooooooooooo.",
+];
+
+const KEYCARD: &[&str] = &[
+    ".ooooooooooo.",
+    ".occccccccco.",
+    ".ossssssssso.",
+    ".occccccccco.",
+    ".occhhccccco.",
+    ".occhhccccco.",
+    ".occccccccco.",
+    ".ooooooooooo.",
+];
+
 pub fn medkit() -> Sprite {
-    let size = 16 * SCALE;
-    let mut sprite = solid(size, size);
-    let outline = [24, 18, 14, 255];
-    let white = [236, 240, 236, 255];
-    let red = [228, 44, 40, 255];
-    fill_rect(
-        &mut sprite,
-        SCALE,
-        2 * SCALE,
-        15 * SCALE,
-        15 * SCALE,
-        outline,
-    );
-    fill_rect(
-        &mut sprite,
-        2 * SCALE,
-        3 * SCALE,
-        14 * SCALE,
-        14 * SCALE,
-        white,
-    );
-    fill_rect(
-        &mut sprite,
-        7 * SCALE,
-        5 * SCALE,
-        9 * SCALE,
-        12 * SCALE,
-        red,
-    );
-    fill_rect(
-        &mut sprite,
-        5 * SCALE,
-        7 * SCALE,
-        11 * SCALE,
-        10 * SCALE,
-        red,
-    );
-    sprite
+    render_grid(MEDKIT, item_color)
 }
 
 pub fn ammo_box() -> Sprite {
-    let size = 16 * SCALE;
-    let mut sprite = solid(size, size);
-    let outline = [22, 20, 12, 255];
-    let shell = [40, 36, 30, 255];
-    let brass = [240, 196, 72, 255];
-    fill_rect(
-        &mut sprite,
-        2 * SCALE,
-        4 * SCALE,
-        14 * SCALE,
-        14 * SCALE,
-        outline,
-    );
-    fill_rect(
-        &mut sprite,
-        3 * SCALE,
-        5 * SCALE,
-        13 * SCALE,
-        13 * SCALE,
-        shell,
-    );
-    for slot in 0..4 {
-        let x = (4 + slot * 2) * SCALE;
-        fill_rect(&mut sprite, x, 5 * SCALE, x + SCALE, 9 * SCALE, brass);
-    }
-    sprite
+    render_grid(AMMO_BOX, item_color)
 }
 
 fn radial(size: u32, inner: [u8; 3], outer: [u8; 3]) -> Sprite {
@@ -507,44 +493,124 @@ pub fn npc_guard() -> Sprite {
     person([78, 96, 122, 255], [156, 168, 188, 255], [50, 44, 40, 255])
 }
 
+// First-person weapon viewmodels: a bottom-anchored pixel sprite of
+// the held weapon, drawn as a screen overlay. Same hand-drawn grid style as the
+// enemies (16 cols wide), muzzle at the top, gripping hands at the bottom.
+fn viewmodel_color(symbol: char, accent: [u8; 4]) -> [u8; 4] {
+    match symbol {
+        'o' => [30, 32, 38, 255],
+        'm' => [96, 100, 112, 255],
+        'l' => [165, 170, 182, 255],
+        'a' => accent,
+        'g' => [58, 42, 30, 255],
+        'h' => [226, 178, 140, 255],
+        'k' => [200, 150, 116, 255],
+        _ => [0, 0, 0, 0],
+    }
+}
+
+fn weapon_view(grid: &[&str], accent: [u8; 4]) -> Sprite {
+    render_grid(grid, |symbol| viewmodel_color(symbol, accent))
+}
+
+const VM_SHOTGUN: &[&str] = &[
+    "....mm......mm....",
+    "....oo......oo....",
+    "...ommo....ommo...",
+    "..ommmmoooommmmo..",
+    ".ommmmmmmmmmmmmmo.",
+    ".ommaaaaaaaaaammo.",
+    ".olmmmmmmmmmmmmlo.",
+    ".ommmmmmmmmmmmmmo.",
+    ".ohhhhhhhhhhhhhho.",
+    ".okhhhhhhhhhhhhko.",
+    "...ommgggggmmo....",
+    "....ogggggggo.....",
+    "....ogggggggo.....",
+    ".....ggggggg......",
+];
+
+const VM_NAILGUN: &[&str] = &[
+    "...m..m..m..m.....",
+    "...m..m..m..m.....",
+    "..oooooooooooooo..",
+    ".ommmmmmmmmmmmmmo.",
+    ".ommaaaaaaaaaammo.",
+    ".olmmmmmmmmmmmmlo.",
+    ".ommmmmmmmmmmmmmo.",
+    ".ohhhhhhhhhhhhhho.",
+    ".okhhhhhhhhhhhhko.",
+    "...ommgggggmmo....",
+    "....ogggggggo.....",
+    "....ogggggggo.....",
+    ".....ggggggg......",
+];
+
+const VM_ROCKET: &[&str] = &[
+    "....oooooooooo....",
+    "...ommaaaaaammo...",
+    "...ommmmmmmmmmo...",
+    "..ommmmmmmmmmmmo..",
+    ".olmmmmmmmmmmmmlo.",
+    ".ommmmmmmmmmmmmmo.",
+    ".ohhhhhhhhhhhhhho.",
+    ".okhhhhhhhhhhhhko.",
+    "...ommgggggmmo....",
+    "....ogggggggo.....",
+    "....ogggggggo.....",
+    ".....ggggggg......",
+];
+
+const VM_RAILGUN: &[&str] = &[
+    "....aaaaaaaaaa....",
+    "...ommmmmmmmmmo...",
+    "..ommmmmmmmmmmmo..",
+    ".ommaaaaaaaaaammo.",
+    ".olmmmmmmmmmmmmlo.",
+    ".ommaaaaaaaaaammo.",
+    ".ommmmmmmmmmmmmmo.",
+    ".ohhhhhhhhhhhhhho.",
+    ".okhhhhhhhhhhhhko.",
+    "...ommgggggmmo....",
+    "....ogggggggo.....",
+    "....ogggggggo.....",
+    ".....ggggggg......",
+];
+
+const VM_PISTOL: &[&str] = &[
+    ".......oooo.......",
+    ".......mllm.......",
+    ".....ommmmmmo.....",
+    ".....ommaammo.....",
+    ".....ommmmmmo.....",
+    "....ohhhhhhhho....",
+    "....okhhhhhhko....",
+    ".....oggggggo.....",
+    ".....oggggggo.....",
+    ".....oggggggo.....",
+    "......gggggg......",
+];
+
+pub fn viewmodel_shotgun() -> Sprite {
+    weapon_view(VM_SHOTGUN, [240, 150, 60, 255])
+}
+
+pub fn viewmodel_nailgun() -> Sprite {
+    weapon_view(VM_NAILGUN, [70, 205, 232, 255])
+}
+
+pub fn viewmodel_rocket() -> Sprite {
+    weapon_view(VM_ROCKET, [96, 156, 255, 255])
+}
+
+pub fn viewmodel_railgun() -> Sprite {
+    weapon_view(VM_RAILGUN, [176, 96, 240, 255])
+}
+
+pub fn viewmodel_pistol() -> Sprite {
+    weapon_view(VM_PISTOL, [240, 210, 90, 255])
+}
+
 pub fn keycard() -> Sprite {
-    let size = 16 * SCALE;
-    let mut sprite = solid(size, size);
-    let outline = [18, 20, 12, 255];
-    let card = [230, 196, 40, 255];
-    let stripe = [40, 32, 12, 255];
-    let chip = [250, 240, 180, 255];
-    fill_rect(
-        &mut sprite,
-        3 * SCALE,
-        5 * SCALE,
-        13 * SCALE,
-        12 * SCALE,
-        outline,
-    );
-    fill_rect(
-        &mut sprite,
-        4 * SCALE,
-        6 * SCALE,
-        12 * SCALE,
-        11 * SCALE,
-        card,
-    );
-    fill_rect(
-        &mut sprite,
-        4 * SCALE,
-        7 * SCALE,
-        12 * SCALE,
-        8 * SCALE,
-        stripe,
-    );
-    fill_rect(
-        &mut sprite,
-        5 * SCALE,
-        9 * SCALE,
-        7 * SCALE,
-        10 * SCALE,
-        chip,
-    );
-    sprite
+    render_grid(KEYCARD, item_color)
 }
