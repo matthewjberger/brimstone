@@ -9,6 +9,7 @@ use crate::content::BlockSpec;
 use crate::systems::world::level;
 use nalgebra_glm::Vec3;
 use nightshade::ecs::graphics::resources::Fog;
+use nightshade::ecs::grass::{GrassDomain, GrassTypeParams};
 use nightshade::prelude::*;
 
 const OVERWORLD_SEED: u32 = 0x0B12_5709;
@@ -50,6 +51,13 @@ pub fn enter(world: &mut World, blocks: &[BlockSpec], spawn: Vec3) -> Vec<Entity
         end: FOG_END,
     });
 
+    world.resources.grass.enabled = true;
+    world.resources.grass.domain = GrassDomain::Infinite;
+    if world.resources.grass.types.is_empty() {
+        world.resources.grass.types = vec![GrassTypeParams::meadow()];
+        world.resources.grass.types_revision += 1;
+    }
+
     terrain_collider_system(world, spawn);
 
     let mut geometry = vec![spawn_sun(world)];
@@ -70,4 +78,5 @@ pub fn leave(world: &mut World) {
         world.resources.terrain.enabled = false;
         world.resources.terrain.revision += 1;
     }
+    world.resources.grass.enabled = false;
 }
