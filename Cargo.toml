@@ -14,11 +14,12 @@ name = "brimstone"
 path = "src/main.rs"
 
 [dependencies]
-nightshade = { version = "0.48.0", features = [
+nightshade = { path = "../nightshade/crates/nightshade", features = [
     "physics",
     "audio",
     "gamepad",
     "navmesh-bake",
+    "terrain",
 ] }
 nalgebra-glm = "0.20"
 

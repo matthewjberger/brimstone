@@ -2534,8 +2534,6 @@ dependencies = [
 [[package]]
 name = "nightshade"
 version = "0.48.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "028b7bbf87631babe13f1cccbb7940e0e19f4bb2840d7f5a3ae72f5d31489582"
 dependencies = [
  "accesskit",
  "accesskit_winit",
